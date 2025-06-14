@@ -40,137 +40,122 @@
     <div id="loading">Initializing viewer...</div>
     <div id="error"></div>
 
-    <!-- Load Three.js from CDN with fallback -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <!-- Load GLTFLoader -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.min.js"></script>
-    <!-- Load OrbitControls from correct jsm path -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.min.js"></script>
+    <script type="module">
+      // Modern ES Module imports
+      import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+      import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+      import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
-    <script>
-      // Wait for everything to load
-      document.addEventListener('DOMContentLoaded', () => {
-        const loadingElement = document.getElementById('loading');
-        const errorElement = document.getElementById('error');
+      const loadingElement = document.getElementById('loading');
+      const errorElement = document.getElementById('error');
+      
+      try {
+        loadingElement.textContent = "Setting up scene...";
+        console.log("Three.js version:", THREE.REVISION);
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x333333);
         
-        try {
-          // Verify Three.js is loaded
-          if (!window.THREE) {
-            throw new Error("Three.js failed to load");
-          }
-          
-          loadingElement.textContent = "Setting up scene...";
-          console.log("Three.js version:", THREE.REVISION);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
 
-          // Verify OrbitControls exists
-          if (typeof OrbitControls === 'undefined') {
-            throw new Error("OrbitControls failed to load. Check the script path.");
-          }
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
 
-          // Scene setup
-          const scene = new THREE.Scene();
-          scene.background = new THREE.Color(0x333333);
-          
-          const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-          const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(1, 1, 1);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        // Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.target.set(0, 1, 0);
+        controls.update();
+
+        camera.position.set(0, 1.5, 3);
+
+        // Model loading
+        loadingElement.textContent = "Loading model...";
+        const loader = new GLTFLoader();
+        const modelPath = window.location.host.includes('github.io') 
+          ? '/KATprojects/katheryne.glb' 
+          : 'katheryne.glb';
+        
+        console.log("Attempting to load model from:", modelPath);
+        
+        loader.load(
+          modelPath,
+          (gltf) => {
+            console.log("Model loaded successfully!");
+            scene.add(gltf.scene);
+            loadingElement.style.display = 'none';
+            
+            // Center the model
+            const box = new THREE.Box3().setFromObject(gltf.scene);
+            const center = box.getCenter(new THREE.Vector3());
+            gltf.scene.position.sub(center);
+          },
+          (xhr) => {
+            const percentLoaded = (xhr.loaded / xhr.total * 100).toFixed(2);
+            loadingElement.textContent = `Loading model... ${percentLoaded}%`;
+            console.log(`${percentLoaded}% loaded`);
+          },
+          (error) => {
+            console.error('Error loading model:', error);
+            loadingElement.style.display = 'none';
+            
+            errorElement.style.display = 'block';
+            errorElement.innerHTML = `
+              <strong>Error loading model!</strong><br>
+              ${error.message}<br><br>
+              Tried to load from: ${modelPath}<br>
+              Check if: <br>
+              - File exists at this path<br>
+              - File is not corrupted<br>
+              - GitHub has fully processed the file
+            `;
+          }
+        );
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
           renderer.setSize(window.innerWidth, window.innerHeight);
-          renderer.shadowMap.enabled = true;
-          document.body.appendChild(renderer.domElement);
+        });
 
-          // Lighting
-          const ambientLight = new THREE.AmbientLight(0x404040);
-          scene.add(ambientLight);
-
-          const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-          directionalLight.position.set(1, 1, 1);
-          directionalLight.castShadow = true;
-          scene.add(directionalLight);
-
-          // Controls - Note we use OrbitControls directly (not THREE.OrbitControls)
-          const controls = new OrbitControls(camera, renderer.domElement);
-          controls.enableDamping = true;
-          controls.dampingFactor = 0.05;
-          controls.target.set(0, 1, 0);
+        // Animation loop
+        function animate() {
+          requestAnimationFrame(animate);
           controls.update();
-
-          camera.position.set(0, 1.5, 3);
-
-          // Model loading
-          loadingElement.textContent = "Loading model...";
-          const loader = new GLTFLoader();
-          const modelPath = window.location.host.includes('github.io') 
-            ? '/KATprojects/katheryne.glb' 
-            : 'katheryne.glb';
-          
-          console.log("Attempting to load model from:", modelPath);
-          
-          loader.load(
-            modelPath,
-            function (gltf) {
-              console.log("Model loaded successfully!");
-              scene.add(gltf.scene);
-              loadingElement.style.display = 'none';
-              
-              // Center the model
-              const box = new THREE.Box3().setFromObject(gltf.scene);
-              const center = box.getCenter(new THREE.Vector3());
-              gltf.scene.position.sub(center);
-            },
-            function (xhr) {
-              const percentLoaded = (xhr.loaded / xhr.total * 100).toFixed(2);
-              loadingElement.textContent = `Loading model... ${percentLoaded}%`;
-              console.log(`${percentLoaded}% loaded`);
-            },
-            function (error) {
-              console.error('Error loading model:', error);
-              loadingElement.style.display = 'none';
-              
-              errorElement.style.display = 'block';
-              errorElement.innerHTML = `
-                <strong>Error loading model!</strong><br>
-                ${error.message}<br><br>
-                Tried to load from: ${modelPath}<br>
-                Check if: <br>
-                - File exists at this path<br>
-                - File is not corrupted<br>
-                - GitHub has fully processed the file
-              `;
-            }
-          );
-
-          // Handle window resize
-          window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-          });
-
-          // Animation loop
-          function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
-          }
-
-          animate();
-        } catch (error) {
-          console.error("Initialization error:", error);
-          loadingElement.style.display = 'none';
-          errorElement.style.display = 'block';
-          errorElement.innerHTML = `
-            <strong>Fatal Error:</strong><br>
-            ${error.message}<br><br>
-            <strong>Possible solutions:</strong><br>
-            1. Make sure you're loading all required Three.js components<br>
-            2. Try these direct script URLs:<br>
-               <a href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" target="_blank">Three.js</a><br>
-               <a href="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.min.js" target="_blank">GLTFLoader</a><br>
-               <a href="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.min.js" target="_blank">OrbitControls</a><br>
-            3. Clear browser cache (Ctrl+Shift+R)<br>
-            4. Try a different browser
-          `;
+          renderer.render(scene, camera);
         }
-      });
+
+        animate();
+      } catch (error) {
+        console.error("Initialization error:", error);
+        loadingElement.style.display = 'none';
+        errorElement.style.display = 'block';
+        errorElement.innerHTML = `
+          <strong>Fatal Error:</strong><br>
+          ${error.message}<br><br>
+          <strong>Possible solutions:</strong><br>
+          1. Make sure you're using a modern browser (Chrome/Firefox/Edge)<br>
+          2. Check your internet connection<br>
+          3. Try clearing browser cache (Ctrl+Shift+R)<br>
+          4. Verify the CDN links are accessible:<br>
+             <a href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" target="_blank">Three.js</a><br>
+             <a href="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js" target="_blank">GLTFLoader</a><br>
+             <a href="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js" target="_blank">OrbitControls</a>
+        `;
+      }
     </script>
   </body>
 </html>
