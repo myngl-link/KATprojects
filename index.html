@@ -7,26 +7,53 @@
     <style>
       body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
       canvas { display: block; }
+
       #loading {
         position: absolute; top: 50%; left: 50%;
         transform: translate(-50%, -50%);
         color: white; background: rgba(0,0,0,0.7);
         padding: 20px; border-radius: 10px;
         text-align: center;
+        z-index: 10;
       }
+
       #error {
         position: absolute; top: 0; left: 0;
         width: 100%; padding: 20px;
         background: #ff4444; color: white;
         display: none;
+        z-index: 10;
+      }
+
+      #dialog {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60%;
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 12px;
+        padding: 15px 25px;
+        color: white;
+        font-size: 18px;
+        border: 1px solid rgba(255,255,255,0.2);
+        font-family: 'GenshinFont', sans-serif;
+        text-align: center;
+        display: none;
+        z-index: 20;
+      }
+
+      @font-face {
+        font-family: 'GenshinFont';
+        src: url('https://fonts.cdnfonts.com/s/14817/GenshinImpact-Regular.woff') format('woff');
       }
     </style>
   </head>
   <body>
     <div id="loading">Initializing viewer...</div>
     <div id="error"></div>
+    <div id="dialog">Ad astra abyssosque...</div>
 
-    <!-- Using import maps for reliable module resolution -->
     <script type="importmap">
       {
         "imports": {
@@ -37,29 +64,30 @@
     </script>
 
     <script type="module">
-      // Import with guaranteed resolution
       import * as THREE from 'three';
       import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
       const loadingElement = document.getElementById('loading');
       const errorElement = document.getElementById('error');
-      
-      try {
-        console.log("Three.js successfully loaded:", THREE.REVISION);
-        loadingElement.textContent = "Setting up scene...";
+      const dialogBox = document.getElementById('dialog');
 
-        // Scene setup
+      let katheryneMesh = null;
+      const raycaster = new THREE.Raycaster();
+      const pointer = new THREE.Vector2();
+      const audio = new Audio('/KATprojects/katheryne-voice.mp3');
+
+      try {
+        loadingElement.textContent = "Setting up scene...";
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x333333);
-        
+
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        // Lighting
         const ambientLight = new THREE.AmbientLight(0x404040);
         scene.add(ambientLight);
 
@@ -68,7 +96,6 @@
         directionalLight.castShadow = true;
         scene.add(directionalLight);
 
-        // Controls
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
@@ -77,74 +104,68 @@
 
         camera.position.set(0, 1.5, 3);
 
-        // Model loading - using absolute path for GitHub Pages
-        loadingElement.textContent = "Loading model...";
         const loader = new GLTFLoader();
-        const modelPath = '/KATprojects/katheryne.glb';
-        
-        console.log("Loading model from:", modelPath);
-        
-        loader.load(
-          modelPath,
-          (gltf) => {
-            console.log("Model loaded successfully!");
-            scene.add(gltf.scene);
-            loadingElement.style.display = 'none';
-            
-            // Center model
-            const box = new THREE.Box3().setFromObject(gltf.scene);
-            const center = box.getCenter(new THREE.Vector3());
-            gltf.scene.position.sub(center);
-          },
-          (xhr) => {
-            const percentLoaded = (xhr.loaded / xhr.total * 100).toFixed(2);
-            loadingElement.textContent = `Loading model... ${percentLoaded}%`;
-            console.log(`${percentLoaded}% loaded`);
-          },
-          (error) => {
-            console.error('Model loading error:', error);
-            loadingElement.style.display = 'none';
-            errorElement.style.display = 'block';
-            errorElement.innerHTML = `
-              <strong>Failed to load model!</strong><br>
-              Error: ${error.message}<br><br>
-              <strong>Troubleshooting:</strong><br>
-              1. Verify <a href="${modelPath}" target="_blank">the model exists</a><br>
-              2. Check file size (should be 308KB)<br>
-              3. Ensure GitHub has processed the file (wait 5 mins after upload)<br>
-              4. Try <a href="https://gltf-viewer.donmccurdy.com/" target="_blank">testing your model here</a>
-            `;
-          }
-        );
 
-        // Handle window resize
+        // Load map first
+        loader.load('/KATprojects/map.glb', (mapGltf) => {
+          scene.add(mapGltf.scene);
+
+          // Then load Katheryne
+          loader.load(
+            '/KATprojects/katheryne.glb',
+            (kathGltf) => {
+              kathGltf.scene.position.set(0, 0.01993, 0);
+              scene.add(kathGltf.scene);
+              katheryneMesh = kathGltf.scene;
+              loadingElement.style.display = 'none';
+
+              // Optional: auto-center model if needed
+              const box = new THREE.Box3().setFromObject(kathGltf.scene);
+              const center = box.getCenter(new THREE.Vector3());
+              kathGltf.scene.position.sub(center);
+              kathGltf.scene.position.y = 0.01993;
+            },
+            (xhr) => {
+              const percentLoaded = (xhr.loaded / xhr.total * 100).toFixed(2);
+              loadingElement.textContent = `Loading Katheryne... ${percentLoaded}%`;
+            },
+            (error) => {
+              errorElement.style.display = 'block';
+              errorElement.innerHTML = `Failed to load Katheryne model!<br>${error.message}`;
+            }
+          );
+        });
+
         window.addEventListener('resize', () => {
           camera.aspect = window.innerWidth / window.innerHeight;
           camera.updateProjectionMatrix();
           renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Animation loop
+        window.addEventListener('click', (event) => {
+          if (!katheryneMesh) return;
+          pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+          pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+          raycaster.setFromCamera(pointer, camera);
+          const intersects = raycaster.intersectObject(katheryneMesh, true);
+          if (intersects.length > 0) {
+            dialogBox.style.display = 'block';
+            dialogBox.textContent = 'Ad astra abyssosque...';
+            audio.play();
+            setTimeout(() => dialogBox.style.display = 'none', 3500);
+          }
+        });
+
         function animate() {
           requestAnimationFrame(animate);
           controls.update();
           renderer.render(scene, camera);
         }
         animate();
-
       } catch (error) {
-        console.error("Initialization failed:", error);
-        loadingElement.style.display = 'none';
         errorElement.style.display = 'block';
-        errorElement.innerHTML = `
-          <strong>Critical Error:</strong><br>
-          ${error.message}<br><br>
-          <strong>Solutions:</strong><br>
-          1. Use Chrome/Firefox/Edge (latest version)<br>
-          2. Disable ad-blockers for this page<br>
-          3. <button onclick="window.location.reload()">Reload Page</button><br>
-          4. <a href="https://github.com/myngl-link/KATprojects" target="_blank">Check repository</a>
-        `;
+        errorElement.innerHTML = `Initialization error: ${error.message}`;
       }
     </script>
   </body>
