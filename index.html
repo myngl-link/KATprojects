@@ -1,147 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Katheryne Viewer</title>
-  <link rel="icon" href="data:,">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif&display=swap" rel="stylesheet" />
-  <style>
-    body { margin: 0; overflow: hidden; font-family: 'Noto Serif', serif; }
-    canvas { display: block; }
-
-    #loading {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      color: white; background: rgba(0,0,0,0.7);
-      padding: 20px; border-radius: 10px;
-      text-align: center; z-index: 10;
-    }
-
-    #error {
-      position: absolute; top: 0; left: 0;
-      width: 100%; padding: 20px;
-      background: #ff4444; color: white;
-      display: none; z-index: 10;
-    }
-
-    #dialog {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 60%;
-      background: rgba(0, 0, 0, 0.6);
-      border-radius: 12px;
-      padding: 15px 25px;
-      color: white;
-      font-size: 18px;
-      border: 1px solid rgba(255,255,255,0.2);
-      font-family: 'Noto Serif', serif;
-      text-align: center;
-      display: none;
-      z-index: 20;
-    }
-  </style>
-</head>
-<body>
-  <div id="loading">Initializing viewer...</div>
-  <div id="error"></div>
-  <div id="dialog">Ad astra abyssosque...</div>
-
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  <head>
+    <meta charset="UTF-8" />
+    <title>Katheryne Viewer</title>
+    <link rel="icon" href="data:,">
+    <style>
+      body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+      canvas { display: block; }
+      #loading {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        color: white; background: rgba(0,0,0,0.7); padding: 20px; border-radius: 10px;
+        text-align: center;
       }
-    }
-  </script>
+      #error {
+        position: absolute; top: 0; left: 0; width: 100%; padding: 20px;
+        background: #ff4444; color: white; display: none;
+      }
+      #dialogBox {
+        position: absolute;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 12px;
+        font-family: 'GenshinFont', Arial, sans-serif;
+        font-size: 18px;
+        max-width: 600px;
+        display: none;
+        text-align: center;
+        border: 2px solid #888;
+      }
+      @font-face {
+        font-family: 'GenshinFont';
+        src: url('https://cdn.jsdelivr.net/gh/Anime-Themes/Genshin-Font@main/GenshinImpact-Regular.woff') format('woff');
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading">Initializing viewer...</div>
+    <div id="error"></div>
+    <div id="dialogBox">Ad astra abyssosque...</div>
 
-  <script type="module">
-    import * as THREE from 'three';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
 
-    const loadingElement = document.getElementById('loading');
-    const errorElement = document.getElementById('error');
-    const dialogBox = document.getElementById('dialog');
+    <script type="module">
+      import * as THREE from 'three';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    let katheryneMesh = null;
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-    const audio = new Audio('/KATprojects/katheryne-voice.mp3');
+      const loadingElement = document.getElementById('loading');
+      const errorElement = document.getElementById('error');
+      const dialogBox = document.getElementById('dialogBox');
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x333333);
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x333333);
 
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-
-    const ambientLight = new THREE.AmbientLight(0x404040);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(1, 1, 1);
-    scene.add(directionalLight);
-
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.target.set(0, 1, 0);
-    controls.update();
-
-    camera.position.set(0, 1.5, 3);
-
-    const loader = new GLTFLoader();
-
-    loader.load('/KATprojects/map.glb', (mapGltf) => {
-      scene.add(mapGltf.scene);
-
-      loader.load('/KATprojects/katheryne.glb', (kathGltf) => {
-        kathGltf.scene.position.set(0, 0.01993, 0); // ✅ Your custom location
-        scene.add(kathGltf.scene);
-        katheryneMesh = kathGltf.scene;
-        loadingElement.style.display = 'none';
-      },
-      undefined,
-      (error) => {
-        errorElement.style.display = 'block';
-        errorElement.textContent = 'Failed to load Katheryne: ' + error.message;
-      });
-    });
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
+      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+      renderer.shadowMap.enabled = true;
+      document.body.appendChild(renderer.domElement);
 
-    window.addEventListener('click', (event) => {
-      if (!katheryneMesh) return;
+      const ambientLight = new THREE.AmbientLight(0x404040);
+      scene.add(ambientLight);
 
-      pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-      pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(1, 1, 1);
+      directionalLight.castShadow = true;
+      scene.add(directionalLight);
 
-      raycaster.setFromCamera(pointer, camera);
-      const intersects = raycaster.intersectObject(katheryneMesh, true);
-
-      if (intersects.length > 0) {
-        dialogBox.style.display = 'block';
-        dialogBox.textContent = 'Ad astra abyssosque...';
-        audio.play();
-        setTimeout(() => dialogBox.style.display = 'none', 3500);
-      }
-    });
-
-    function animate() {
-      requestAnimationFrame(animate);
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.target.set(0, 1, 0);
       controls.update();
-      renderer.render(scene, camera);
-    }
 
-    animate();
-  </script>
-</body>
+      camera.position.set(0, 1.5, 3);
+
+      const loader = new GLTFLoader();
+      loader.load(
+        '/KATprojects/katheryne.glb',
+        (gltf) => {
+          let kath = gltf.scene;
+          scene.add(kath);
+
+          // Move to Blender coordinate
+          kath.traverse((node) => {
+            if (node.isMesh) {
+              node.position.set(0, 0.01993, 0);
+              node.updateMatrixWorld();
+            }
+          });
+
+          loadingElement.style.display = 'none';
+
+          const box = new THREE.Box3().setFromObject(kath);
+          const center = new THREE.Vector3();
+          box.getCenter(center);
+
+          const audio = new Audio('KATprojects/506064546_30055791174065285_2686737457664994031_n (1).mp3');
+          let isAudioPlaying = false;
+
+          window.addEventListener('click', (event) => {
+            const mouse = new THREE.Vector2(
+              (event.clientX / window.innerWidth) * 2 - 1,
+              -(event.clientY / window.innerHeight) * 2 + 1
+            );
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(kath, true);
+
+            if (intersects.length > 0 && !isAudioPlaying) {
+              isAudioPlaying = true;
+              audio.currentTime = 0;
+              audio.play();
+              dialogBox.style.display = 'block';
+
+              controls.enabled = false;
+              camera.position.set(center.x + 1.2, center.y + 1.5, center.z + 2.5);
+              camera.lookAt(center);
+
+              audio.onended = () => {
+                isAudioPlaying = false;
+                dialogBox.style.display = 'none';
+                controls.enabled = true;
+              };
+            }
+          });
+        },
+        (xhr) => {
+          loadingElement.textContent = `Loading model... ${(xhr.loaded / xhr.total * 100).toFixed(2)}%`;
+        },
+        (error) => {
+          console.error('Model loading error:', error);
+          loadingElement.style.display = 'none';
+          errorElement.style.display = 'block';
+          errorElement.innerHTML = `<strong>Failed to load model!</strong><br>${error.message}`;
+        }
+      );
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+    </script>
+  </body>
 </html>
