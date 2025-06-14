@@ -135,7 +135,7 @@
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.physicallyCorrectLights = true;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0; // Start with 1.0 exposure (linear)
+  renderer.toneMappingExposure = 0.00; // Start with 0.00 exposure (linear)
   document.body.appendChild(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
