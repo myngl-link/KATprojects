@@ -105,58 +105,84 @@
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.physicallyCorrectLights = true;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.5; // Increased exposure for better lighting
+  renderer.toneMappingExposure = 1.5;
   document.body.appendChild(renderer.domElement);
 
-  // Optimized controls
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
-  controls.maxPolarAngle = Math.PI * 0.9; // Prevent going under the ground
+  controls.maxPolarAngle = Math.PI * 0.9;
 
-  // Improved ambient light
-  const ambientLight = new THREE.AmbientLight(0xfff4e6, 0.3); // Increased intensity
+  // Ambient light (subtle warm fill)
+  const ambientLight = new THREE.AmbientLight(0xfff4e6, 0.25);
   scene.add(ambientLight);
 
-  // Adjusted light coordinates and parameters
+  // All 13 lights with exact Blender coordinates
   const lights = [
-    // Format: [x, y, z, intensity, color, distance, decay, castShadow]
-    // Right side lights
-    [8.32, 5.4, 2.92, 2.5, 0xffddb3, 15, 1.5, true],
-    [9.21, 5.98, 3.32, 2.0, 0xffe6c3, 12, 1.5, true],
-    // Left side lights
-    [-8.32, 5.4, 2.92, 2.5, 0xffddb3, 15, 1.5, true],
-    [-9.21, 5.98, 3.32, 2.0, 0xffe6c3, 12, 1.5, true],
-    // Ceiling lights
-    [4.01, 14.17, 4.97, 1.8, 0xffe6b3, 18, 1.2, false],
-    [-4.02, 14.16, 5.02, 1.8, 0xffe6b3, 18, 1.2, false],
-    // Lower lights
-    [0, -6, 12, 3.5, 0xfff0d0, 25, 1, true], // Central chandelier - stronger
-    [9.18, -5.98, 3.22, 1.8, 0xffddaa, 15, 1.5, true],
-    [-9.18, -5.99, 3.27, 1.8, 0xffddaa, 15, 1.5, true]
+    // Right wall main
+    { pos: [8.31998, 5.4, 2.92], intensity: 1.8, color: 0xffddb3, distance: 14, decay: 1.8 },
+    
+    // Right wall accent
+    { pos: [9.21, 5.98, 3.32], intensity: 1.5, color: 0xffe6c3, distance: 12, decay: 1.8 },
+    
+    // High ceiling right
+    { pos: [4.00624, 14.17, 4.96998], intensity: 1.2, color: 0xffe6b3, distance: 18, decay: 1.5 },
+    
+    // High ceiling left
+    { pos: [-4.02, 14.16, 5.01998], intensity: 1.2, color: 0xffe6b3, distance: 18, decay: 1.5 },
+    
+    // Left wall main
+    { pos: [-9.18, 5.99001, 3.27], intensity: 1.8, color: 0xffddb3, distance: 14, decay: 1.8 },
+    
+    // Left wall upper
+    { pos: [-9.18, 8.98, 3.27], intensity: 1.4, color: 0xffe6c3, distance: 12, decay: 1.8 },
+    
+    // Rear high right
+    { pos: [4.00624, -14.19, 5.00998], intensity: 1.0, color: 0xffe0b0, distance: 20, decay: 1.5 },
+    
+    // Rear high left
+    { pos: [-3.94999, -14.19, 5.00998], intensity: 1.0, color: 0xffe0b0, distance: 20, decay: 1.5 },
+    
+    // Left wall lower
+    { pos: [-9.18, -5.99, 3.27], intensity: 1.4, color: 0xffddaa, distance: 14, decay: 1.8 },
+    
+    // Left wall corner
+    { pos: [-9.18, -9.01, 3.27], intensity: 1.6, color: 0xffe6c3, distance: 10, decay: 1.8 },
+    
+    // Right wall lower
+    { pos: [9.18, -5.98, 3.22], intensity: 1.4, color: 0xffddaa, distance: 14, decay: 1.8 },
+    
+    // Right wall corner
+    { pos: [9.18, -9.01, 3.21], intensity: 1.6, color: 0xffe6c3, distance: 10, decay: 1.8 },
+    
+    // Central chandelier
+    { pos: [0, -6, 12], intensity: 2.5, color: 0xfff0d0, distance: 22, decay: 1.2 }
   ];
 
-  // Create lights with optimized settings
-  lights.forEach(([x, y, z, intensity, color, distance, decay, castShadow]) => {
-    const light = new THREE.PointLight(color, intensity, distance, decay);
-    light.position.set(x, y, z);
-    if (useShadows && castShadow) {
+  // Create all lights with optimized settings
+  lights.forEach(lightConfig => {
+    const light = new THREE.PointLight(
+      lightConfig.color,
+      lightConfig.intensity,
+      lightConfig.distance,
+      lightConfig.decay
+    );
+    light.position.set(...lightConfig.pos);
+    
+    if (useShadows) {
       light.castShadow = true;
       light.shadow.mapSize.width = shadowQuality;
       light.shadow.mapSize.height = shadowQuality;
       light.shadow.bias = -0.001;
       light.shadow.normalBias = 0.05;
     }
-    scene.add(light);
     
-    // Optional: Add light helpers for debugging
-    // const helper = new THREE.PointLightHelper(light, 0.5, 0xff0000);
-    // scene.add(helper);
+    scene.add(light);
   });
 
   // Enhanced spotlight for Katheryne
   const kathLight = new THREE.SpotLight(0xffd700, 3.5, 10, Math.PI/5, 0.4);
-  kathLight.position.set(0, 3.5, -10); // Adjusted position
+  kathLight.position.set(0, 3.5, -10);
   kathLight.target.position.set(0, 0.14, -12.1);
   if (useShadows) {
     kathLight.castShadow = true;
@@ -168,7 +194,7 @@
   scene.add(kathLight);
   scene.add(kathLight.target);
 
-  // Add subtle rim light for better character visibility
+  // Rim light for better character visibility
   const rimLight = new THREE.DirectionalLight(0xfff5e6, 0.8);
   rimLight.position.set(0.5, 0.5, 1);
   scene.add(rimLight);
@@ -183,19 +209,17 @@
   const mouse = new THREE.Vector2();
   let isAnimating = false;
 
-  // Optimized model loading
+  // Model optimization function
   function optimizeModel(model) {
     model.traverse(child => {
       if (child.isMesh) {
         child.castShadow = useShadows;
         child.receiveShadow = useShadows;
         
-        // Optimize materials
         if (child.material) {
           child.material.roughness = 0.7;
           child.material.metalness = 0.2;
           
-          // Disable expensive features on mobile
           if (isMobile) {
             child.material.aoMapIntensity = 0.5;
             child.material.envMapIntensity = 0.5;
@@ -297,8 +321,7 @@
     }, 3500);
   }
 
-  // Optimized click handler
-  function onClick(e) {
+  window.addEventListener('click', e => {
     if (!kath || isAnimating) return;
     
     mouse.x = (e.clientX/window.innerWidth)*2 - 1;
@@ -309,16 +332,13 @@
     if (hits.length) {
       animateCameraToDialogPosition();
     }
-  }
-
-  // Throttled event listeners
-  window.addEventListener('click', onClick, { passive: true });
+  });
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth/window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-  }, { passive: true });
+  });
 
   // Frame rate optimization
   let lastTime = 0;
@@ -328,7 +348,6 @@
   function animate(currentTime) {
     requestAnimationFrame(animate);
     
-    // Throttle updates for better performance
     const delta = currentTime - lastTime;
     if (delta < frameInterval) return;
     
