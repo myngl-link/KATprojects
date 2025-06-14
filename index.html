@@ -1,30 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
+  <meta charset="UTF-8" />
   <title>Katheryne Viewer</title>
   <link rel="icon" href="data:,">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif&display=swap" rel="stylesheet" />
   <style>
-    body { margin:0; overflow:hidden; font-family:'Noto Serif', serif; }
-    canvas { display:block; }
-    #loading, #error, #dialog {
-      position:absolute; left:50%; transform:translateX(-50%);
-      z-index:10; text-align:center;
-    }
+    body { margin: 0; overflow: hidden; font-family: 'Noto Serif', serif; }
+    canvas { display: block; }
+
     #loading {
-      top:50%; color:#fff; background:rgba(0,0,0,0.7);
-      padding:20px;border-radius:10px;
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      color: white; background: rgba(0,0,0,0.7);
+      padding: 20px; border-radius: 10px;
+      text-align: center; z-index: 10;
     }
+
     #error {
-      top:0; width:100%; padding:20px;
-      background:#f44336; color:#fff; display:none;
+      position: absolute; top: 0; left: 0;
+      width: 100%; padding: 20px;
+      background: #ff4444; color: white;
+      display: none; z-index: 10;
     }
+
     #dialog {
-      bottom:40px; width:60%; padding:15px 25px;
-      background:rgba(0,0,0,0.7); color:#fff;
-      border:1px solid rgba(255,255,255,0.2);
-      border-radius:10px; font-size:18px; display:none;
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 12px;
+      padding: 15px 25px;
+      color: white;
+      font-size: 18px;
+      border: 1px solid rgba(255,255,255,0.2);
+      font-family: 'Noto Serif', serif;
+      text-align: center;
+      display: none;
+      z-index: 20;
     }
   </style>
 </head>
@@ -34,103 +49,99 @@
   <div id="dialog">Ad astra abyssosque...</div>
 
   <script type="importmap">
-  {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
   </script>
 
   <script type="module">
-  import * as THREE from 'three';
-  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-  const loading = document.getElementById('loading');
-  const error = document.getElementById('error');
-  const dialog = document.getElementById('dialog');
+    const loadingElement = document.getElementById('loading');
+    const errorElement = document.getElementById('error');
+    const dialogBox = document.getElementById('dialog');
 
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x333333);
+    let katheryneMesh = null;
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const audio = new Audio('/KATprojects/katheryne-voice.mp3');
 
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 2, 5);
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x333333);
 
-  const renderer = new THREE.WebGLRenderer({antialias:true});
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = true;
-  document.body.appendChild(renderer.domElement);
-
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.05;
-
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const dir = new THREE.DirectionalLight(0xffffff, 1);
-  dir.position.set(5,10,7.5);
-  dir.castShadow = true;
-  scene.add(dir);
-
-  const loader = new GLTFLoader();
-  const mp3Name = encodeURI("506064546_30055791174065285_2686737457664994031_n (1).mp3");
-  const voice = new Audio(`/KATprojects/${mp3Name}`);
-
-  let kath = null;
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
-
-  loader.load('/KATprojects/map.glb',
-    map => scene.add(map.scene),
-    undefined,
-    err => {
-      error.style.display = 'block';
-      error.textContent = 'Failed to load map: ' + err.message;
-      loading.style.display = 'none';
-    });
-
-  loader.load('/KATprojects/katheryne.glb',
-    gltf => {
-      kath = gltf.scene;
-      kath.position.set(0, 0.01993, 0);
-      scene.add(kath);
-      loading.style.display = 'none';
-
-      // smooth camera to focus on Katheryne
-      controls.target.copy(kath.position);
-      camera.position.set(0, kath.position.y + 1.5, kath.position.z + 3);
-      controls.update();
-    },
-    xhr => {
-      loading.textContent = `Loading… ${(xhr.loaded/xhr.total*100).toFixed(2)}%`;
-    },
-    err => {
-      error.style.display = 'block';
-      error.textContent = 'Failed to load Katheryne: ' + err.message;
-      loading.style.display = 'none';
-    });
-
-  window.addEventListener('click', e => {
-    if (!kath) return;
-    mouse.x = (e.clientX/window.innerWidth)*2 - 1;
-    mouse.y = -(e.clientY/window.innerHeight)*2 + 1;
-    raycaster.setFromCamera(mouse, camera);
-    const hits = raycaster.intersectObject(kath, true);
-    if (hits.length) {
-      dialog.style.display = 'block';
-      voice.currentTime = 0;
-      voice.play();
-      setTimeout(() => dialog.style.display='none', 3500);
-    }
-  });
-
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+    document.body.appendChild(renderer.domElement);
 
-  function animate() {
-    requestAnimationFrame(animate);
+    const ambientLight = new THREE.AmbientLight(0x404040);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(0, 1, 0);
     controls.update();
-    renderer.render(scene, camera);
-  }
-  animate();
+
+    camera.position.set(0, 1.5, 3);
+
+    const loader = new GLTFLoader();
+
+    loader.load('/KATprojects/map.glb', (mapGltf) => {
+      scene.add(mapGltf.scene);
+
+      loader.load('/KATprojects/katheryne.glb', (kathGltf) => {
+        kathGltf.scene.position.set(0, 0.01993, 0); // ✅ Your custom location
+        scene.add(kathGltf.scene);
+        katheryneMesh = kathGltf.scene;
+        loadingElement.style.display = 'none';
+      },
+      undefined,
+      (error) => {
+        errorElement.style.display = 'block';
+        errorElement.textContent = 'Failed to load Katheryne: ' + error.message;
+      });
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    window.addEventListener('click', (event) => {
+      if (!katheryneMesh) return;
+
+      pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+      pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(pointer, camera);
+      const intersects = raycaster.intersectObject(katheryneMesh, true);
+
+      if (intersects.length > 0) {
+        dialogBox.style.display = 'block';
+        dialogBox.textContent = 'Ad astra abyssosque...';
+        audio.play();
+        setTimeout(() => dialogBox.style.display = 'none', 3500);
+      }
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
   </script>
 </body>
 </html>
