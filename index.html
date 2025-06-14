@@ -3,35 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <title>Katheryne Viewer</title>
-    <link rel="icon" href="data:,"> <!-- Prevent favicon request -->
+    <link rel="icon" href="data:,">
     <style>
-      body { 
-        margin: 0; 
-        overflow: hidden; 
-        font-family: Arial, sans-serif;
-      }
-      canvas { 
-        display: block; 
-      }
+      body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+      canvas { display: block; }
       #loading {
-        position: absolute;
-        top: 50%;
-        left: 50%;
+        position: absolute; top: 50%; left: 50%;
         transform: translate(-50%, -50%);
-        color: white;
-        background: rgba(0,0,0,0.7);
-        padding: 20px;
-        border-radius: 10px;
+        color: white; background: rgba(0,0,0,0.7);
+        padding: 20px; border-radius: 10px;
         text-align: center;
       }
       #error {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        padding: 20px;
-        background: #ff4444;
-        color: white;
+        position: absolute; top: 0; left: 0;
+        width: 100%; padding: 20px;
+        background: #ff4444; color: white;
         display: none;
       }
     </style>
@@ -40,18 +26,28 @@
     <div id="loading">Initializing viewer...</div>
     <div id="error"></div>
 
+    <!-- Using import maps for reliable module resolution -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+
     <script type="module">
-      // Modern ES Module imports
-      import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-      import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-      import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+      // Import with guaranteed resolution
+      import * as THREE from 'three';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
       const loadingElement = document.getElementById('loading');
       const errorElement = document.getElementById('error');
       
       try {
+        console.log("Three.js successfully loaded:", THREE.REVISION);
         loadingElement.textContent = "Setting up scene...";
-        console.log("Three.js version:", THREE.REVISION);
 
         // Scene setup
         const scene = new THREE.Scene();
@@ -81,14 +77,12 @@
 
         camera.position.set(0, 1.5, 3);
 
-        // Model loading
+        // Model loading - using absolute path for GitHub Pages
         loadingElement.textContent = "Loading model...";
         const loader = new GLTFLoader();
-        const modelPath = window.location.host.includes('github.io') 
-          ? '/KATprojects/katheryne.glb' 
-          : 'katheryne.glb';
+        const modelPath = '/KATprojects/katheryne.glb';
         
-        console.log("Attempting to load model from:", modelPath);
+        console.log("Loading model from:", modelPath);
         
         loader.load(
           modelPath,
@@ -97,7 +91,7 @@
             scene.add(gltf.scene);
             loadingElement.style.display = 'none';
             
-            // Center the model
+            // Center model
             const box = new THREE.Box3().setFromObject(gltf.scene);
             const center = box.getCenter(new THREE.Vector3());
             gltf.scene.position.sub(center);
@@ -108,18 +102,17 @@
             console.log(`${percentLoaded}% loaded`);
           },
           (error) => {
-            console.error('Error loading model:', error);
+            console.error('Model loading error:', error);
             loadingElement.style.display = 'none';
-            
             errorElement.style.display = 'block';
             errorElement.innerHTML = `
-              <strong>Error loading model!</strong><br>
-              ${error.message}<br><br>
-              Tried to load from: ${modelPath}<br>
-              Check if: <br>
-              - File exists at this path<br>
-              - File is not corrupted<br>
-              - GitHub has fully processed the file
+              <strong>Failed to load model!</strong><br>
+              Error: ${error.message}<br><br>
+              <strong>Troubleshooting:</strong><br>
+              1. Verify <a href="${modelPath}" target="_blank">the model exists</a><br>
+              2. Check file size (should be 308KB)<br>
+              3. Ensure GitHub has processed the file (wait 5 mins after upload)<br>
+              4. Try <a href="https://gltf-viewer.donmccurdy.com/" target="_blank">testing your model here</a>
             `;
           }
         );
@@ -137,23 +130,20 @@
           controls.update();
           renderer.render(scene, camera);
         }
-
         animate();
+
       } catch (error) {
-        console.error("Initialization error:", error);
+        console.error("Initialization failed:", error);
         loadingElement.style.display = 'none';
         errorElement.style.display = 'block';
         errorElement.innerHTML = `
-          <strong>Fatal Error:</strong><br>
+          <strong>Critical Error:</strong><br>
           ${error.message}<br><br>
-          <strong>Possible solutions:</strong><br>
-          1. Make sure you're using a modern browser (Chrome/Firefox/Edge)<br>
-          2. Check your internet connection<br>
-          3. Try clearing browser cache (Ctrl+Shift+R)<br>
-          4. Verify the CDN links are accessible:<br>
-             <a href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" target="_blank">Three.js</a><br>
-             <a href="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js" target="_blank">GLTFLoader</a><br>
-             <a href="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js" target="_blank">OrbitControls</a>
+          <strong>Solutions:</strong><br>
+          1. Use Chrome/Firefox/Edge (latest version)<br>
+          2. Disable ad-blockers for this page<br>
+          3. <button onclick="window.location.reload()">Reload Page</button><br>
+          4. <a href="https://github.com/myngl-link/KATprojects" target="_blank">Check repository</a>
         `;
       }
     </script>
