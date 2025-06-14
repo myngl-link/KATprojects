@@ -39,10 +39,12 @@
     <div id="loading">Initializing viewer...</div>
     <div id="error"></div>
 
-    <!-- Load Three.js first from CDN -->
+    <!-- Load Three.js from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Load GLTFLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.min.js"></script>
+    <!-- Load OrbitControls from correct path -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.min.js"></script>
 
     <script>
       // Wait for everything to load
@@ -58,6 +60,11 @@
           
           loadingElement.textContent = "Setting up scene...";
           console.log("Three.js version:", THREE.REVISION);
+
+          // Verify OrbitControls exists
+          if (typeof THREE.OrbitControls === 'undefined') {
+            throw new Error("OrbitControls failed to load. Check the script path.");
+          }
 
           // Scene setup
           const scene = new THREE.Scene();
@@ -78,7 +85,7 @@
           directionalLight.castShadow = true;
           scene.add(directionalLight);
 
-          // Controls
+          // Controls - Note the corrected constructor
           const controls = new THREE.OrbitControls(camera, renderer.domElement);
           controls.enableDamping = true;
           controls.dampingFactor = 0.05;
@@ -125,8 +132,7 @@
                 Check if: <br>
                 - File exists at this path<br>
                 - File is not corrupted<br>
-                - GitHub has fully processed the file (large files take time)<br>
-                - If file >25MB, you need Git LFS
+                - GitHub has fully processed the file
               `;
             }
           );
@@ -153,10 +159,15 @@
           errorElement.innerHTML = `
             <strong>Fatal Error:</strong><br>
             ${error.message}<br><br>
-            Possible solutions:<br>
-            1. Check your internet connection<br>
-            2. Try refreshing the page<br>
-            3. The CDN might be down - try again later
+            <strong>Possible solutions:</strong><br>
+            1. Make sure you're loading all required Three.js components<br>
+            2. Check your internet connection<br>
+            3. Try clearing your browser cache<br>
+            4. The CDN might be down - try again later<br>
+            5. Try these direct script URLs:<br>
+               - Three.js: https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js<br>
+               - GLTFLoader: https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.min.js<br>
+               - OrbitControls: https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.min.js
           `;
         }
       });
