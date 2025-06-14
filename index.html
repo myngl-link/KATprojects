@@ -21,17 +21,48 @@
       background:#f44336; color:#fff; display:none;
     }
     #dialog {
-      bottom:40px; width:60%; padding:15px 25px;
-      background:rgba(0,0,0,0.7); color:#fff;
-      border:1px solid rgba(255,255,255,0.2);
+      bottom:40px; width:60%; max-width:600px; padding:15px 25px;
+      background:rgba(0,0,0,0.85); color:#fff;
+      border:1px solid rgba(255,215,0,0.5);
       border-radius:10px; font-size:18px; display:none;
+      box-shadow: 0 0 15px rgba(255,215,0,0.3);
+    }
+    .dialog-title {
+      color: gold;
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 20px;
+      border-bottom: 1px solid rgba(255,215,0,0.3);
+      padding-bottom: 5px;
+    }
+    .dialog-content {
+      line-height: 1.5;
+    }
+    .dialog-icon {
+      position: absolute;
+      right: 15px;
+      top: 15px;
+      width: 30px;
+      height: 30px;
+      background: gold;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <div id="loading">Initializing viewer...</div>
   <div id="error"></div>
-  <div id="dialog">Ad astra abyssosque...</div>
+  <div id="dialog">
+    <div class="dialog-title">Katheryne</div>
+    <div class="dialog-content">Ad astra abyssosque...</div>
+    <div class="dialog-icon">!</div>
+  </div>
 
   <script type="importmap">
   {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
@@ -41,6 +72,7 @@
   import * as THREE from 'three';
   import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { Tween } from 'three/addons/libs/tween.module.js';
 
   const loading = document.getElementById('loading');
   const error = document.getElementById('error');
@@ -74,6 +106,7 @@
   let kath = null;
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
+  let isAnimating = false;
 
   loader.load('/KATprojects/map.glb',
     map => scene.add(map.scene),
@@ -87,11 +120,12 @@
   loader.load('/KATprojects/katheryne.glb',
     gltf => {
       kath = gltf.scene;
+      // Set Katheryne's position to the specified coordinates
       kath.position.set(0, 0.01993, 0);
       scene.add(kath);
       loading.style.display = 'none';
 
-      // smooth camera to focus on Katheryne
+      // Set initial camera position and target
       controls.target.copy(kath.position);
       camera.position.set(0, kath.position.y + 1.5, kath.position.z + 3);
       controls.update();
@@ -105,17 +139,81 @@
       loading.style.display = 'none';
     });
 
+  function animateCameraToDialogPosition() {
+    if (!kath || isAnimating) return;
+    
+    isAnimating = true;
+    controls.enabled = false;
+    
+    // Store original camera position and target
+    const originalPosition = camera.position.clone();
+    const originalTarget = controls.target.clone();
+    
+    // Calculate dialog camera position (closer and slightly angled)
+    const dialogPosition = new THREE.Vector3(
+      kath.position.x - 0.5,
+      kath.position.y + 1.2,
+      kath.position.z + 1.5
+    );
+    
+    // Create tweens for smooth animation
+    const positionTween = new TWEEN.Tween(originalPosition)
+      .to(dialogPosition, 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+      .onUpdate(() => {
+        camera.position.copy(originalPosition);
+      });
+    
+    const targetTween = new TWEEN.Tween(originalTarget)
+      .to(new THREE.Vector3(
+        kath.position.x,
+        kath.position.y + 0.5,
+        kath.position.z
+      ), 1000)
+      .easing(TWEEN.Easing.Quadratic.InOut)
+      .onUpdate(() => {
+        controls.target.copy(originalTarget);
+      });
+    
+    // Chain the animations
+    positionTween.start();
+    targetTween.start();
+    
+    // Show dialog and play voice
+    dialog.style.display = 'block';
+    voice.currentTime = 0;
+    voice.play();
+    
+    // After voice finishes, return to original position
+    setTimeout(() => {
+      const returnPositionTween = new TWEEN.Tween(camera.position)
+        .to(originalPosition, 1000)
+        .easing(TWEEN.Easing.Quadratic.InOut)
+        .start();
+      
+      const returnTargetTween = new TWEEN.Tween(controls.target)
+        .to(originalTarget, 1000)
+        .easing(TWEEN.Easing.Quadratic.InOut)
+        .onComplete(() => {
+          controls.enabled = true;
+          isAnimating = false;
+        })
+        .start();
+      
+      dialog.style.display = 'none';
+    }, 3500);
+  }
+
   window.addEventListener('click', e => {
-    if (!kath) return;
+    if (!kath || isAnimating) return;
+    
     mouse.x = (e.clientX/window.innerWidth)*2 - 1;
     mouse.y = -(e.clientY/window.innerHeight)*2 + 1;
     raycaster.setFromCamera(mouse, camera);
     const hits = raycaster.intersectObject(kath, true);
+    
     if (hits.length) {
-      dialog.style.display = 'block';
-      voice.currentTime = 0;
-      voice.play();
-      setTimeout(() => dialog.style.display='none', 3500);
+      animateCameraToDialogPosition();
     }
   });
 
@@ -127,6 +225,7 @@
 
   function animate() {
     requestAnimationFrame(animate);
+    TWEEN.update();
     controls.update();
     renderer.render(scene, camera);
   }
