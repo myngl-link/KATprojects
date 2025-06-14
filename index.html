@@ -4,47 +4,127 @@
     <meta charset="UTF-8" />
     <title>Katheryne Viewer</title>
     <style>
-      body { margin: 0; }
-      canvas { display: block; }
+      body { 
+        margin: 0; 
+        overflow: hidden; 
+        font-family: Arial, sans-serif;
+      }
+      canvas { 
+        display: block; 
+      }
+      #loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        background: rgba(0,0,0,0.7);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+      }
+      #error {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 20px;
+        background: #ff4444;
+        color: white;
+        display: none;
+      }
     </style>
   </head>
   <body>
-    <script type="module">
-      import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-      import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-      import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+    <div id="loading">Loading Katheryne model...</div>
+    <div id="error"></div>
 
+    <script type="module">
+      import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+      import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+      import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+      // Debug info
+      console.log("Three.js version:", THREE.REVISION);
+      console.log("Starting Katheryne viewer...");
+
+      // Scene setup
       const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x333333);
+      
       const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
       const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
       document.body.appendChild(renderer.domElement);
 
-      // Light
-      const light = new THREE.HemisphereLight(0xffffff, 0x444444, 2);
-      scene.add(light);
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0x404040);
+      scene.add(ambientLight);
 
-      const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-      dirLight.position.set(3, 10, 5);
-      scene.add(dirLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(1, 1, 1);
+      directionalLight.castShadow = true;
+      scene.add(directionalLight);
 
       // Controls
       const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
       controls.target.set(0, 1, 0);
       controls.update();
 
-      // Load GLB model
-      const loader = new GLTFLoader();
-      loader.load('katheryne.glb', function (gltf) {
-        scene.add(gltf.scene);
-      }, undefined, function (error) {
-        console.error('An error occurred loading the model:', error);
-      });
-
       camera.position.set(0, 1.5, 3);
 
+      // Model loading
+      const loader = new GLTFLoader();
+      const modelPath = 'katheryne.glb'; // Try '/KATprojects/katheryne.glb' if this doesn't work
+      
+      console.log("Attempting to load model from:", modelPath);
+      
+      loader.load(
+        modelPath,
+        function (gltf) {
+          console.log("Model loaded successfully!");
+          scene.add(gltf.scene);
+          document.getElementById('loading').style.display = 'none';
+          
+          // Center the model
+          const box = new THREE.Box3().setFromObject(gltf.scene);
+          const center = box.getCenter(new THREE.Vector3());
+          gltf.scene.position.sub(center);
+        },
+        function (xhr) {
+          const percentLoaded = (xhr.loaded / xhr.total * 100).toFixed(2);
+          document.getElementById('loading').textContent = `Loading Katheryne model... ${percentLoaded}%`;
+          console.log(`${percentLoaded}% loaded`);
+        },
+        function (error) {
+          console.error('Error loading model:', error);
+          document.getElementById('loading').style.display = 'none';
+          
+          const errorDiv = document.getElementById('error');
+          errorDiv.style.display = 'block';
+          errorDiv.innerHTML = `
+            <strong>Error loading model!</strong><br>
+            ${error.message}<br><br>
+            Tried to load from: ${modelPath}<br>
+            Check if the file exists and is in the correct location.
+          `;
+        }
+      );
+
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      // Animation loop
       function animate() {
         requestAnimationFrame(animate);
+        controls.update();
         renderer.render(scene, camera);
       }
 
