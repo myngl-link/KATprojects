@@ -54,23 +54,7 @@
       font-weight: bold;
     }
     #settings {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(0,0,0,0.7);
-      padding: 10px;
-      border-radius: 5px;
-      color: white;
-      z-index: 100;
-    }
-    .slider-container {
-      margin-bottom: 10px;
-    }
-    .slider-value {
-      display: inline-block;
-      width: 60px;
-      text-align: right;
-      margin-left: 10px;
+      display: none; /* Hide controls completely */
     }
   </style>
 </head>
@@ -86,7 +70,7 @@
     <div class="slider-container">
       Exposure: 
       <input type="range" id="exposure" min="-10" max="2" step="0.1" value="0">
-      <span class="slider-value" id="exposureValue">0.00</span>
+      <span class="slider-value" id="exposureValue">1.00</span>
     </div>
     <div class="slider-container">
       Light Intensity: 
@@ -135,7 +119,7 @@
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.physicallyCorrectLights = true;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.00; // Start with 0.00 exposure (linear)
+  renderer.toneMappingExposure = 1.0; // Set directly to 1.0 (0.00 in logarithmic)
   document.body.appendChild(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -147,16 +131,11 @@
   const ambientLight = new THREE.AmbientLight(0xfff4e6, 0.15);
   scene.add(ambientLight);
 
-  // Let's use fewer but more optimized lights
+  // Lights configuration
   const lights = [
-    // Main directional light (simulating sun/major light source)
     { type: 'directional', pos: [5, 10, 5], intensity: 1.2, color: 0xfff0d0, target: [0, 0, -12] },
-    
-    // Katheryne's key light
     { type: 'spot', pos: [0, 3, -9], intensity: 2.0, color: 0xffd700, distance: 12, angle: Math.PI/6, 
       penumbra: 0.5, decay: 1, target: [0, 0.14, -12.1] },
-    
-    // Fill lights
     { type: 'point', pos: [5, 3, -5], intensity: 0.8, color: 0xffe6c3, distance: 10, decay: 1.5 },
     { type: 'point', pos: [-5, 3, -5], intensity: 0.8, color: 0xffe6c3, distance: 10, decay: 1.5 }
   ];
@@ -218,7 +197,7 @@
   const mouse = new THREE.Vector2();
   let isAnimating = false;
 
-  // Load models with Blender-like material handling
+  // Load models
   loader.load('/KATprojects/map.glb',
     map => {
       mapScene = map.scene;
@@ -226,8 +205,6 @@
         if (child.isMesh) {
           child.castShadow = useShadows;
           child.receiveShadow = useShadows;
-          
-          // Adjust materials to be closer to Blender's look
           if (child.material) {
             child.material.toneMapped = true;
             child.material.needsUpdate = true;
@@ -252,8 +229,6 @@
         if (child.isMesh) {
           child.castShadow = useShadows;
           child.receiveShadow = useShadows;
-          
-          // Adjust materials for better Blender-like appearance
           if (child.material) {
             child.material.toneMapped = true;
             child.material.roughness = 0.6;
@@ -279,36 +254,8 @@
       loading.style.display = 'none';
     });
 
-  // Settings controls
-  const exposureSlider = document.getElementById('exposure');
-  const exposureValue = document.getElementById('exposureValue');
-  const lightIntensitySlider = document.getElementById('lightIntensity');
-  const lightIntensityValue = document.getElementById('lightIntensityValue');
-
-  function updateExposure() {
-    const logValue = parseFloat(exposureSlider.value);
-    const linearValue = Math.pow(10, logValue);
-    renderer.toneMappingExposure = linearValue;
-    exposureValue.textContent = linearValue.toFixed(2);
-  }
-
-  function updateLightIntensity() {
-    const intensity = parseFloat(lightIntensitySlider.value);
-    lightInstances.forEach(light => {
-      light.intensity = intensity;
-      if (light.isSpotLight || light.isDirectionalLight) {
-        light.shadow.needsUpdate = true;
-      }
-    });
-    lightIntensityValue.textContent = intensity.toFixed(1);
-  }
-
-  exposureSlider.addEventListener('input', updateExposure);
-  lightIntensitySlider.addEventListener('input', updateLightIntensity);
-
-  // Initialize values
-  updateExposure();
-  updateLightIntensity();
+  // Initialize with default exposure (0.00 = 1.0)
+  renderer.toneMappingExposure = 1.0;
 
   function animateCameraToDialogPosition() {
     if (!kath || isAnimating) return;
