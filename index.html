@@ -85,8 +85,8 @@
   <div id="settings">
     <div class="slider-container">
       Exposure: 
-      <input type="range" id="exposure" min="-10" max="10" step="0.1" value="0">
-      <span class="slider-value" id="exposureValue">0.0</span>
+      <input type="range" id="exposure" min="-10" max="2" step="0.1" value="0">
+      <span class="slider-value" id="exposureValue">1.00</span>
     </div>
     <div class="slider-container">
       Light Intensity: 
@@ -135,7 +135,7 @@
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.physicallyCorrectLights = true;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = 1.0; // Start with 1.0 exposure (linear)
   document.body.appendChild(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -147,11 +147,16 @@
   const ambientLight = new THREE.AmbientLight(0xfff4e6, 0.15);
   scene.add(ambientLight);
 
-  // Lights configuration
+  // Let's use fewer but more optimized lights
   const lights = [
+    // Main directional light (simulating sun/major light source)
     { type: 'directional', pos: [5, 10, 5], intensity: 1.2, color: 0xfff0d0, target: [0, 0, -12] },
+    
+    // Katheryne's key light
     { type: 'spot', pos: [0, 3, -9], intensity: 2.0, color: 0xffd700, distance: 12, angle: Math.PI/6, 
       penumbra: 0.5, decay: 1, target: [0, 0.14, -12.1] },
+    
+    // Fill lights
     { type: 'point', pos: [5, 3, -5], intensity: 0.8, color: 0xffe6c3, distance: 10, decay: 1.5 },
     { type: 'point', pos: [-5, 3, -5], intensity: 0.8, color: 0xffe6c3, distance: 10, decay: 1.5 }
   ];
@@ -213,7 +218,7 @@
   const mouse = new THREE.Vector2();
   let isAnimating = false;
 
-  // Load models
+  // Load models with Blender-like material handling
   loader.load('/KATprojects/map.glb',
     map => {
       mapScene = map.scene;
@@ -221,6 +226,8 @@
         if (child.isMesh) {
           child.castShadow = useShadows;
           child.receiveShadow = useShadows;
+          
+          // Adjust materials to be closer to Blender's look
           if (child.material) {
             child.material.toneMapped = true;
             child.material.needsUpdate = true;
@@ -245,6 +252,8 @@
         if (child.isMesh) {
           child.castShadow = useShadows;
           child.receiveShadow = useShadows;
+          
+          // Adjust materials for better Blender-like appearance
           if (child.material) {
             child.material.toneMapped = true;
             child.material.roughness = 0.6;
@@ -277,11 +286,10 @@
   const lightIntensityValue = document.getElementById('lightIntensityValue');
 
   function updateExposure() {
-    const value = parseFloat(exposureSlider.value);
-    // Convert slider value (-10 to 10) to exposure (0.0001 to 10000)
-    const exposure = value < 0 ? 1 / (1 - value) : 1 + value;
-    renderer.toneMappingExposure = exposure;
-    exposureValue.textContent = value.toFixed(1);
+    const logValue = parseFloat(exposureSlider.value);
+    const linearValue = Math.pow(10, logValue);
+    renderer.toneMappingExposure = linearValue;
+    exposureValue.textContent = linearValue.toFixed(2);
   }
 
   function updateLightIntensity() {
