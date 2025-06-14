@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>Katheryne Viewer</title>
+    <link rel="icon" href="data:,"> <!-- Prevent favicon request -->
     <style>
       body { 
         margin: 0; 
@@ -39,12 +40,12 @@
     <div id="loading">Initializing viewer...</div>
     <div id="error"></div>
 
-    <!-- Load Three.js from CDN -->
+    <!-- Load Three.js from CDN with fallback -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
     <!-- Load GLTFLoader -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.min.js"></script>
-    <!-- Load OrbitControls from correct path -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.min.js"></script>
+    <!-- Load OrbitControls from correct jsm path -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.min.js"></script>
 
     <script>
       // Wait for everything to load
@@ -62,7 +63,7 @@
           console.log("Three.js version:", THREE.REVISION);
 
           // Verify OrbitControls exists
-          if (typeof THREE.OrbitControls === 'undefined') {
+          if (typeof OrbitControls === 'undefined') {
             throw new Error("OrbitControls failed to load. Check the script path.");
           }
 
@@ -85,8 +86,8 @@
           directionalLight.castShadow = true;
           scene.add(directionalLight);
 
-          // Controls - Note the corrected constructor
-          const controls = new THREE.OrbitControls(camera, renderer.domElement);
+          // Controls - Note we use OrbitControls directly (not THREE.OrbitControls)
+          const controls = new OrbitControls(camera, renderer.domElement);
           controls.enableDamping = true;
           controls.dampingFactor = 0.05;
           controls.target.set(0, 1, 0);
@@ -96,7 +97,7 @@
 
           // Model loading
           loadingElement.textContent = "Loading model...";
-          const loader = new THREE.GLTFLoader();
+          const loader = new GLTFLoader();
           const modelPath = window.location.host.includes('github.io') 
             ? '/KATprojects/katheryne.glb' 
             : 'katheryne.glb';
@@ -161,13 +162,12 @@
             ${error.message}<br><br>
             <strong>Possible solutions:</strong><br>
             1. Make sure you're loading all required Three.js components<br>
-            2. Check your internet connection<br>
-            3. Try clearing your browser cache<br>
-            4. The CDN might be down - try again later<br>
-            5. Try these direct script URLs:<br>
-               - Three.js: https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js<br>
-               - GLTFLoader: https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.min.js<br>
-               - OrbitControls: https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.min.js
+            2. Try these direct script URLs:<br>
+               <a href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js" target="_blank">Three.js</a><br>
+               <a href="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.min.js" target="_blank">GLTFLoader</a><br>
+               <a href="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.min.js" target="_blank">OrbitControls</a><br>
+            3. Clear browser cache (Ctrl+Shift+R)<br>
+            4. Try a different browser
           `;
         }
       });
