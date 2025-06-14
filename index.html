@@ -36,99 +36,130 @@
     </style>
   </head>
   <body>
-    <div id="loading">Loading Katheryne model...</div>
+    <div id="loading">Initializing viewer...</div>
     <div id="error"></div>
 
-    <script type="module">
-      import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-      import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-      import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+    <!-- Load Three.js first from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
 
-      // Debug info
-      console.log("Three.js version:", THREE.REVISION);
-      console.log("Starting Katheryne viewer...");
-
-      // Scene setup
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x333333);
-      
-      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.shadowMap.enabled = true;
-      document.body.appendChild(renderer.domElement);
-
-      // Lighting
-      const ambientLight = new THREE.AmbientLight(0x404040);
-      scene.add(ambientLight);
-
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-      directionalLight.position.set(1, 1, 1);
-      directionalLight.castShadow = true;
-      scene.add(directionalLight);
-
-      // Controls
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.target.set(0, 1, 0);
-      controls.update();
-
-      camera.position.set(0, 1.5, 3);
-
-      // Model loading
-      const loader = new GLTFLoader();
-      const modelPath = '/KATprojects/katheryne.glb'; // Try '/KATprojects/katheryne.glb' if this doesn't work
-      
-      console.log("Attempting to load model from:", modelPath);
-      
-      loader.load(
-        modelPath,
-        function (gltf) {
-          console.log("Model loaded successfully!");
-          scene.add(gltf.scene);
-          document.getElementById('loading').style.display = 'none';
+    <script>
+      // Wait for everything to load
+      document.addEventListener('DOMContentLoaded', () => {
+        const loadingElement = document.getElementById('loading');
+        const errorElement = document.getElementById('error');
+        
+        try {
+          // Verify Three.js is loaded
+          if (!window.THREE) {
+            throw new Error("Three.js failed to load");
+          }
           
-          // Center the model
-          const box = new THREE.Box3().setFromObject(gltf.scene);
-          const center = box.getCenter(new THREE.Vector3());
-          gltf.scene.position.sub(center);
-        },
-        function (xhr) {
-          const percentLoaded = (xhr.loaded / xhr.total * 100).toFixed(2);
-          document.getElementById('loading').textContent = `Loading Katheryne model... ${percentLoaded}%`;
-          console.log(`${percentLoaded}% loaded`);
-        },
-        function (error) {
-          console.error('Error loading model:', error);
-          document.getElementById('loading').style.display = 'none';
+          loadingElement.textContent = "Setting up scene...";
+          console.log("Three.js version:", THREE.REVISION);
+
+          // Scene setup
+          const scene = new THREE.Scene();
+          scene.background = new THREE.Color(0x333333);
           
-          const errorDiv = document.getElementById('error');
-          errorDiv.style.display = 'block';
-          errorDiv.innerHTML = `
-            <strong>Error loading model!</strong><br>
+          const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+          const renderer = new THREE.WebGLRenderer({ antialias: true });
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          renderer.shadowMap.enabled = true;
+          document.body.appendChild(renderer.domElement);
+
+          // Lighting
+          const ambientLight = new THREE.AmbientLight(0x404040);
+          scene.add(ambientLight);
+
+          const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+          directionalLight.position.set(1, 1, 1);
+          directionalLight.castShadow = true;
+          scene.add(directionalLight);
+
+          // Controls
+          const controls = new THREE.OrbitControls(camera, renderer.domElement);
+          controls.enableDamping = true;
+          controls.dampingFactor = 0.05;
+          controls.target.set(0, 1, 0);
+          controls.update();
+
+          camera.position.set(0, 1.5, 3);
+
+          // Model loading
+          loadingElement.textContent = "Loading model...";
+          const loader = new THREE.GLTFLoader();
+          const modelPath = window.location.host.includes('github.io') 
+            ? '/KATprojects/katheryne.glb' 
+            : 'katheryne.glb';
+          
+          console.log("Attempting to load model from:", modelPath);
+          
+          loader.load(
+            modelPath,
+            function (gltf) {
+              console.log("Model loaded successfully!");
+              scene.add(gltf.scene);
+              loadingElement.style.display = 'none';
+              
+              // Center the model
+              const box = new THREE.Box3().setFromObject(gltf.scene);
+              const center = box.getCenter(new THREE.Vector3());
+              gltf.scene.position.sub(center);
+            },
+            function (xhr) {
+              const percentLoaded = (xhr.loaded / xhr.total * 100).toFixed(2);
+              loadingElement.textContent = `Loading model... ${percentLoaded}%`;
+              console.log(`${percentLoaded}% loaded`);
+            },
+            function (error) {
+              console.error('Error loading model:', error);
+              loadingElement.style.display = 'none';
+              
+              errorElement.style.display = 'block';
+              errorElement.innerHTML = `
+                <strong>Error loading model!</strong><br>
+                ${error.message}<br><br>
+                Tried to load from: ${modelPath}<br>
+                Check if: <br>
+                - File exists at this path<br>
+                - File is not corrupted<br>
+                - GitHub has fully processed the file (large files take time)<br>
+                - If file >25MB, you need Git LFS
+              `;
+            }
+          );
+
+          // Handle window resize
+          window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+          });
+
+          // Animation loop
+          function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+          }
+
+          animate();
+        } catch (error) {
+          console.error("Initialization error:", error);
+          loadingElement.style.display = 'none';
+          errorElement.style.display = 'block';
+          errorElement.innerHTML = `
+            <strong>Fatal Error:</strong><br>
             ${error.message}<br><br>
-            Tried to load from: ${modelPath}<br>
-            Check if the file exists and is in the correct location.
+            Possible solutions:<br>
+            1. Check your internet connection<br>
+            2. Try refreshing the page<br>
+            3. The CDN might be down - try again later
           `;
         }
-      );
-
-      // Handle window resize
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
       });
-
-      // Animation loop
-      function animate() {
-        requestAnimationFrame(animate);
-        controls.update();
-        renderer.render(scene, camera);
-      }
-
-      animate();
     </script>
   </body>
 </html>
