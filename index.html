@@ -53,6 +53,16 @@
       justify-content: center;
       font-weight: bold;
     }
+    #settings {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      padding: 10px;
+      border-radius: 5px;
+      color: white;
+      z-index: 100;
+    }
   </style>
 </head>
 <body>
@@ -62,6 +72,10 @@
     <div class="dialog-title">Katheryne</div>
     <div class="dialog-content">Ad astra abyssosque...</div>
     <div class="dialog-icon">!</div>
+  </div>
+  <div id="settings">
+    <div>Exposure: <input type="range" id="exposure" min="0.1" max="2" step="0.1" value="1"></div>
+    <div>Light Intensity: <input type="range" id="lightIntensity" min="0.5" max="3" step="0.1" value="1.5"></div>
   </div>
 
   <script type="importmap">
@@ -84,6 +98,11 @@
   const error = document.getElementById('error');
   const dialog = document.getElementById('dialog');
 
+  // Performance optimization
+  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+  const useShadows = !isMobile;
+  const shadowQuality = isMobile ? 512 : 1024;
+
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x222222);
 
@@ -95,58 +114,82 @@
     powerPreference: "high-performance"
   });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = useShadows;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.physicallyCorrectLights = true;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.1; // Fixed very low exposure (-10 equivalent)
+  renderer.toneMappingExposure = 1.0; // Start with lower exposure
   document.body.appendChild(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
+  controls.maxPolarAngle = Math.PI * 0.9;
 
-  // Very dim ambient light
-  const ambientLight = new THREE.AmbientLight(0xfff4e6, 0.1);
+  // Ambient light - subtle fill
+  const ambientLight = new THREE.AmbientLight(0xfff4e6, 0.15);
   scene.add(ambientLight);
 
-  // All 13 lights with drastically reduced intensities
+  // Let's use fewer but more optimized lights
   const lights = [
-    // Format: [x, y, z, intensity, color, distance, decay]
-    [8.31998, 5.4, 2.92, 0.3, 0xffddb3, 12, 2],    // Right wall main
-    [9.21, 5.98, 3.32, 0.2, 0xffe6c3, 10, 2],      // Right wall accent
-    [4.00624, 14.17, 4.96998, 0.15, 0xffe6b3, 15, 1.5], // High ceiling right
-    [-4.02, 14.16, 5.01998, 0.15, 0xffe6b3, 15, 1.5],  // High ceiling left
-    [-9.18, 5.99001, 3.27, 0.3, 0xffddb3, 12, 2],   // Left wall main
-    [-9.18, 8.98, 3.27, 0.2, 0xffe6c3, 10, 2],      // Left wall upper
-    [4.00624, -14.19, 5.00998, 0.1, 0xffe0b0, 18, 1.5], // Rear high right
-    [-3.94999, -14.19, 5.00998, 0.1, 0xffe0b0, 18, 1.5],// Rear high left
-    [-9.18, -5.99, 3.27, 0.2, 0xffddaa, 12, 2],     // Left wall lower
-    [-9.18, -9.01, 3.27, 0.25, 0xffe6c3, 8, 2],     // Left wall corner
-    [9.18, -5.98, 3.22, 0.2, 0xffddaa, 12, 2],      // Right wall lower
-    [9.18, -9.01, 3.21, 0.25, 0xffe6c3, 8, 2],     // Right wall corner
-    [0, -6, 12, 0.4, 0xfff0d0, 20, 1]              // Central chandelier
+    // Main directional light (simulating sun/major light source)
+    { type: 'directional', pos: [5, 10, 5], intensity: 1.2, color: 0xfff0d0, target: [0, 0, -12] },
+    
+    // Katheryne's key light
+    { type: 'spot', pos: [0, 3, -9], intensity: 2.0, color: 0xffd700, distance: 12, angle: Math.PI/6, 
+      penumbra: 0.5, decay: 1, target: [0, 0.14, -12.1] },
+    
+    // Fill lights
+    { type: 'point', pos: [5, 3, -5], intensity: 0.8, color: 0xffe6c3, distance: 10, decay: 1.5 },
+    { type: 'point', pos: [-5, 3, -5], intensity: 0.8, color: 0xffe6c3, distance: 10, decay: 1.5 }
   ];
 
-  lights.forEach(([x, y, z, intensity, color, distance, decay]) => {
-    const light = new THREE.PointLight(color, intensity, distance, decay);
-    light.position.set(x, y, z);
-    light.castShadow = true;
-    light.shadow.mapSize.width = 512; // Reduced for performance
-    light.shadow.mapSize.height = 512;
-    light.shadow.bias = -0.001;
-    scene.add(light);
-  });
+  const lightInstances = [];
 
-  // Dimmed spotlight for Katheryne
-  const kathLight = new THREE.SpotLight(0xffd700, 0.8, 8, Math.PI/6, 0.5);
-  kathLight.position.set(0, 2.5, -11);
-  kathLight.target.position.set(0, 0.14, -12.1);
-  kathLight.castShadow = true;
-  kathLight.shadow.mapSize.width = 512;
-  kathLight.shadow.mapSize.height = 512;
-  scene.add(kathLight);
-  scene.add(kathLight.target);
+  lights.forEach(lightConfig => {
+    let light;
+    switch(lightConfig.type) {
+      case 'directional':
+        light = new THREE.DirectionalLight(lightConfig.color, lightConfig.intensity);
+        light.position.set(...lightConfig.pos);
+        light.target.position.set(...lightConfig.target);
+        scene.add(light.target);
+        break;
+      case 'spot':
+        light = new THREE.SpotLight(
+          lightConfig.color,
+          lightConfig.intensity,
+          lightConfig.distance,
+          lightConfig.angle,
+          lightConfig.penumbra,
+          lightConfig.decay
+        );
+        light.position.set(...lightConfig.pos);
+        light.target.position.set(...lightConfig.target);
+        scene.add(light.target);
+        break;
+      case 'point':
+        light = new THREE.PointLight(
+          lightConfig.color,
+          lightConfig.intensity,
+          lightConfig.distance,
+          lightConfig.decay
+        );
+        light.position.set(...lightConfig.pos);
+        break;
+    }
+
+    if (useShadows && lightConfig.type !== 'point') {
+      light.castShadow = true;
+      light.shadow.mapSize.width = shadowQuality;
+      light.shadow.mapSize.height = shadowQuality;
+      light.shadow.bias = -0.001;
+      light.shadow.normalBias = 0.05;
+    }
+
+    scene.add(light);
+    lightInstances.push(light);
+  });
 
   const loader = new GLTFLoader();
   const mp3Name = encodeURI("506064546_30055791174065285_2686737457664994031_n (1).mp3");
@@ -158,14 +201,20 @@
   const mouse = new THREE.Vector2();
   let isAnimating = false;
 
+  // Load models with Blender-like material handling
   loader.load('/KATprojects/map.glb',
     map => {
       mapScene = map.scene;
       mapScene.traverse(child => {
         if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-          // Materials remain unchanged as requested
+          child.castShadow = useShadows;
+          child.receiveShadow = useShadows;
+          
+          // Adjust materials to be closer to Blender's look
+          if (child.material) {
+            child.material.toneMapped = true;
+            child.material.needsUpdate = true;
+          }
         }
       });
       scene.add(mapScene);
@@ -184,9 +233,16 @@
       
       kath.traverse(child => {
         if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-          // Materials remain unchanged as requested
+          child.castShadow = useShadows;
+          child.receiveShadow = useShadows;
+          
+          // Adjust materials for better Blender-like appearance
+          if (child.material) {
+            child.material.toneMapped = true;
+            child.material.roughness = 0.6;
+            child.material.metalness = 0.1;
+            child.material.needsUpdate = true;
+          }
         }
       });
       
@@ -205,6 +261,21 @@
       error.textContent = 'Failed to load Katheryne: ' + err.message;
       loading.style.display = 'none';
     });
+
+  // Settings controls
+  document.getElementById('exposure').addEventListener('input', (e) => {
+    renderer.toneMappingExposure = parseFloat(e.target.value);
+  });
+
+  document.getElementById('lightIntensity').addEventListener('input', (e) => {
+    const intensity = parseFloat(e.target.value);
+    lightInstances.forEach(light => {
+      light.intensity = intensity;
+      if (light.isSpotLight || light.isDirectionalLight) {
+        light.shadow.needsUpdate = true;
+      }
+    });
+  });
 
   function animateCameraToDialogPosition() {
     if (!kath || isAnimating) return;
