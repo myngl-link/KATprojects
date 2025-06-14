@@ -65,14 +65,20 @@
   </div>
 
   <script type="importmap">
-  {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+      "tween.js": "https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@18.6.4/dist/tween.esm.js"
+    }
+  }
   </script>
 
   <script type="module">
   import * as THREE from 'three';
   import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-  import { Tween } from 'three/addons/libs/tween.module.js';
+  import * as TWEEN from 'tween.js';
 
   const loading = document.getElementById('loading');
   const error = document.getElementById('error');
@@ -162,7 +168,8 @@
       .easing(TWEEN.Easing.Quadratic.InOut)
       .onUpdate(() => {
         camera.position.copy(originalPosition);
-      });
+      })
+      .start();
     
     const targetTween = new TWEEN.Tween(originalTarget)
       .to(new THREE.Vector3(
@@ -173,11 +180,8 @@
       .easing(TWEEN.Easing.Quadratic.InOut)
       .onUpdate(() => {
         controls.target.copy(originalTarget);
-      });
-    
-    // Chain the animations
-    positionTween.start();
-    targetTween.start();
+      })
+      .start();
     
     // Show dialog and play voice
     dialog.style.display = 'block';
