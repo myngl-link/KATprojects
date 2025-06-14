@@ -74,7 +74,7 @@
     <div class="dialog-icon">!</div>
   </div>
   <div id="settings">
-    <div>Light Intensity: <input type="range" id="lightIntensity" min="0.5" max="3" step="0.1" value="1.8"></div>
+    <!-- No exposure controls - permanently set to -0.8 -->
   </div>
 
   <script type="importmap">
@@ -117,7 +117,7 @@
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.physicallyCorrectLights = true;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.8; // PERMANENTLY SET TO 0.8
+  renderer.toneMappingExposure = Math.pow(10, -0.8); // -0.8 exposure (darker)
   document.body.appendChild(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -125,20 +125,17 @@
   controls.dampingFactor = 0.05;
   controls.maxPolarAngle = Math.PI * 0.9;
 
-  // Adjusted lights for 0.8 exposure
-  const ambientLight = new THREE.AmbientLight(0xfff4e6, 0.2); // Slightly stronger ambient
+  // Original lighting values (not boosted)
+  const ambientLight = new THREE.AmbientLight(0xfff4e6, 0.15);
   scene.add(ambientLight);
 
   const lights = [
-    // Brighter main light to compensate for 0.8 exposure
-    { type: 'directional', pos: [5, 10, 5], intensity: 1.5, color: 0xfff0d0, target: [0, 0, -12] },
-    { type: 'spot', pos: [0, 3, -9], intensity: 2.5, color: 0xffd700, distance: 12, angle: Math.PI/6, 
+    { type: 'directional', pos: [5, 10, 5], intensity: 1.2, color: 0xfff0d0, target: [0, 0, -12] },
+    { type: 'spot', pos: [0, 3, -9], intensity: 2.0, color: 0xffd700, distance: 12, angle: Math.PI/6, 
       penumbra: 0.5, decay: 1, target: [0, 0.14, -12.1] },
-    { type: 'point', pos: [5, 3, -5], intensity: 1.0, color: 0xffe6c3, distance: 10, decay: 1.5 },
-    { type: 'point', pos: [-5, 3, -5], intensity: 1.0, color: 0xffe6c3, distance: 10, decay: 1.5 }
+    { type: 'point', pos: [5, 3, -5], intensity: 0.8, color: 0xffe6c3, distance: 10, decay: 1.5 },
+    { type: 'point', pos: [-5, 3, -5], intensity: 0.8, color: 0xffe6c3, distance: 10, decay: 1.5 }
   ];
-
-  const lightInstances = [];
 
   lights.forEach(lightConfig => {
     let light;
@@ -180,9 +177,7 @@
       light.shadow.bias = -0.001;
       light.shadow.normalBias = 0.05;
     }
-
     scene.add(light);
-    lightInstances.push(light);
   });
 
   const loader = new GLTFLoader();
@@ -195,7 +190,6 @@
   const mouse = new THREE.Vector2();
   let isAnimating = false;
 
-  // Load models
   loader.load('/KATprojects/map.glb',
     map => {
       mapScene = map.scene;
@@ -251,17 +245,6 @@
       error.textContent = 'Failed to load Katheryne: ' + err.message;
       loading.style.display = 'none';
     });
-
-  // Only light intensity control remains
-  document.getElementById('lightIntensity').addEventListener('input', (e) => {
-    const intensity = parseFloat(e.target.value);
-    lightInstances.forEach(light => {
-      light.intensity = intensity;
-      if (light.isSpotLight || light.isDirectionalLight) {
-        light.shadow.needsUpdate = true;
-      }
-    });
-  });
 
   function animateCameraToDialogPosition() {
     if (!kath || isAnimating) return;
