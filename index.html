@@ -26,8 +26,8 @@
       flex-direction:column;
       justify-content:center;
       align-items:center;
-      opacity:1;
-      transition: opacity 1s;
+      opacity:0;
+      transition: opacity 1.5s ease-out;
     }
     
     #loading-content {
@@ -41,36 +41,39 @@
     #mondstadt-animation {
       width:150px;
       height:150px;
+      opacity:0;
+      transition: opacity 1s ease-out 0.5s;
     }
     
     /* ELEMENT LOADING BAR */
-    .loading-bar {
+    .loading-container {
       position: relative;
       width: 500px;
       height: 62.5px;
       transform: scale(0.8);
-      user-select: none;
-      overflow: hidden;
       margin-top: 50px;
+      opacity:0;
+      transition: opacity 1s ease-out 1s;
     }
     
-    .loading-bar img {
+    .loading-bar-bg {
       position: absolute;
-      top: 500px;
-      left: 0;
-      filter: drop-shadow(0 -500px 0 #f5f5f5);
+      width: 100%;
+      height: 100%;
+      background: url("https://raw.githubusercontent.com/myngl-link/KATprojects/main/loading-bar.webp") no-repeat;
+      background-size: 100% 100%;
+      filter: drop-shadow(0 0 0 #f5f5f5);
     }
     
-    .loading-bar::after {
-      content: "";
+    .loading-bar-fill {
       position: absolute;
-      top: 500px;
-      left: 0;
-      filter: drop-shadow(0 -500px 0 #666666);
-      width: 0;
-      height: 62.5px;
-      background: url("https://raw.githubusercontent.com/myngl-link/KATprojects/main/loading-bar.webp") no-repeat left 100%;
-      background-size: 500px 62.5px;
+      width: 0%;
+      height: 100%;
+      background: url("https://raw.githubusercontent.com/myngl-link/KATprojects/main/loading-bar.webp") no-repeat;
+      background-size: 500px 100%;
+      filter: drop-shadow(0 0 0 #666666);
+      overflow: hidden;
+      transition: width 0.3s ease-out;
     }
     
     /* ERROR OVERLAY */
@@ -183,14 +186,15 @@
   <!-- WHITE LOADING OVERLAY -->
   <div id="loading-overlay">
     <div id="loading-content">
-      <!-- Animated Mondstadt Icon at TOP -->
+      <!-- Animated Mondstadt Icon -->
       <video id="mondstadt-animation" autoplay loop muted playsinline>
         <source src="https://raw.githubusercontent.com/myngl-link/KATprojects/main/507059009_29906174742360989_5255855171109690292_n.mp4" type="video/mp4">
       </video>
       
-      <!-- Element Loading Bar at BOTTOM -->
-      <div class="loading-bar" role="presentation" aria-hidden="true">
-        <img src="https://raw.githubusercontent.com/myngl-link/KATprojects/main/loading-bar.webp" alt="Loading...">
+      <!-- Loading Bar -->
+      <div class="loading-container">
+        <div class="loading-bar-bg"></div>
+        <div class="loading-bar-fill"></div>
       </div>
     </div>
   </div>
@@ -250,43 +254,91 @@
     }
 
     // ======================
-    // LOADING SYSTEM
+    // LOADING ANIMATION SYSTEM
     // ======================
-    let totalAssets = 3; // katheryne.glb + map.glb + voice line
-    let loadedAssets = 0;
-    const loadingBarAfter = document.querySelector('.loading-bar::after');
     const loadingOverlay = document.getElementById('loading-overlay');
+    const mondstadtAnim = document.getElementById('mondstadt-animation');
+    const loadingContainer = document.querySelector('.loading-container');
+    const loadingBarFill = document.querySelector('.loading-bar-fill');
+    
+    // Initialize audio
     const initialSound = new Audio('https://raw.githubusercontent.com/myngl-link/KATprojects/main/loading-sound-effect.mp3');
     const bgMusic = new Audio('https://raw.githubusercontent.com/myngl-link/KATprojects/main/loading-background-music.mp3');
     bgMusic.loop = true;
 
-    // Start sounds on first interaction
-    const initSounds = () => {
-      initialSound.play().catch(e => console.log("Initial sound play failed:", e));
-    };
-    
-    document.body.addEventListener('click', initSounds, { once: true });
-    document.body.addEventListener('touchstart', initSounds, { once: true });
+    // Track loading start time
+    const loadStartTime = Date.now();
+    const minimumLoadTime = 12000; // 12 seconds minimum loading time
 
-    // Update loading bar
+    // Start the loading sequence
+    function startLoadingSequence() {
+      // Fade in overlay and elements
+      loadingOverlay.style.opacity = '1';
+      
+      // Play initial sound when elements start fading in
+      setTimeout(() => {
+        initialSound.play().catch(e => console.log("Initial sound play failed:", e));
+      }, 500);
+      
+      // Fade in elements
+      setTimeout(() => {
+        mondstadtAnim.style.opacity = '1';
+        loadingContainer.style.opacity = '1';
+      }, 100);
+    }
+
+    // Start loading sequence immediately
+    startLoadingSequence();
+
+    // ======================
+    // PROGRESS TRACKING
+    // ======================
+    let totalAssets = 3; // katheryne.glb + map.glb + voice line
+    let loadedAssets = 0;
+    let allAssetsLoaded = false;
+    let minimumLoadComplete = false;
+
     function updateProgress() {
       loadedAssets++;
-      const progress = loadedAssets / totalAssets;
-      loadingBarAfter.style.width = `${progress * 500}px`;
+      const progress = Math.min(loadedAssets / totalAssets, 1);
+      loadingBarFill.style.width = `${progress * 100}%`;
       
       if (loadedAssets === totalAssets) {
-        setTimeout(() => {
-          loadingOverlay.style.opacity = '0';
-          setTimeout(() => {
-            loadingOverlay.style.display = 'none';
-            // Play background music after 2 seconds
-            setTimeout(() => {
-              bgMusic.play().catch(e => console.log("Background music play failed:", e));
-            }, 2000);
-          }, 1000); // Fade-out duration
-        }, 1500); // Minimum loading display time
+        allAssetsLoaded = true;
+        checkLoadingComplete();
       }
     }
+
+    function checkLoadingComplete() {
+      const currentTime = Date.now();
+      const elapsed = currentTime - loadStartTime;
+      const remainingTime = minimumLoadTime - elapsed;
+
+      if (allAssetsLoaded && remainingTime <= 0) {
+        completeLoading();
+      } else if (allAssetsLoaded) {
+        setTimeout(completeLoading, remainingTime);
+      }
+    }
+
+    function completeLoading() {
+      loadingOverlay.style.opacity = '0';
+      setTimeout(() => {
+        loadingOverlay.style.display = 'none';
+        // Start background music after 2 seconds
+        setTimeout(() => {
+          bgMusic.play().catch(e => console.log("Background music play failed:", e));
+        }, 2000);
+      }, 1000);
+    }
+
+    // Set minimum load time check
+    setTimeout(() => {
+      minimumLoadComplete = true;
+      if (allAssetsLoaded) {
+        completeLoading();
+      }
+    }, minimumLoadTime);
 
     // ======================
     // MAIN VIEWER CODE
@@ -342,8 +394,7 @@
       undefined,
       (err) => {
         console.error('Map load error:', err);
-        document.getElementById('error').style.display = 'block';
-        document.getElementById('error').textContent = 'Failed to load map: ' + err.message;
+        updateProgress();
       }
     );
 
@@ -361,22 +412,22 @@
         });
         
         scene.add(kath);
-        updateProgress();
-        
         controls.target.copy(kath.position);
         camera.position.set(0, kath.position.y + 1.5, kath.position.z + 3);
         controls.update();
+        updateProgress();
       },
       undefined,
       (err) => {
         console.error('Katheryne load error:', err);
-        document.getElementById('error').style.display = 'block';
-        document.getElementById('error').textContent = 'Failed to load Katheryne: ' + err.message;
+        updateProgress();
       }
     );
 
-    // Count voice line as loaded
-    voice.addEventListener('canplaythrough', updateProgress);
+    // Voice line loading
+    voice.addEventListener('canplaythrough', updateProgress, { once: true });
+    voice.addEventListener('error', updateProgress);
+    voice.load();
 
     // Dialog animation
     function animateCameraToDialogPosition() {
