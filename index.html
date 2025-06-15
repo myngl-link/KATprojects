@@ -94,15 +94,106 @@
       align-items:center;
     }
     
-    /* ... (keep other styles the same) ... */
+    .error-modal {
+      width:600px;
+      background:white;
+      border-radius:3px;
+      overflow:hidden;
+      box-shadow:0 3px 15px rgba(0,0,0,0.2);
+      border:1px solid #E0E0E0;
+    }
+    
+    .error-title {
+      background:linear-gradient(to right, #D32F2F, #B71C1C);
+      color:white;
+      padding:18px;
+      text-align:center;
+      font-weight:700;
+      letter-spacing:0.5px;
+      font-size:24px;
+    }
+    
+    .error-body {
+      padding:30px 40px;
+      line-height:1.6;
+      font-size:18px;
+      color:#212121;
+      text-align:center;
+    }
+    
+    .error-code {
+      font-weight:500;
+      color:#D32F2F;
+      text-align:center;
+      margin:20px 0;
+      font-size:20px;
+    }
+    
+    #error-confirm {
+      display:block;
+      width:180px;
+      margin:0 auto 30px;
+      padding:12px;
+      background:#D32F2F;
+      color:white;
+      border:none;
+      border-radius:4px;
+      font-weight:500;
+      font-size:18px;
+      cursor:pointer;
+      transition:background 0.2s;
+    }
+    
+    #error-confirm:hover {
+      background:#B71C1C;
+    }
+    
+    /* ORIGINAL VIEWER ELEMENTS */
+    #error, #dialog {
+      position:absolute;
+      left:50%;
+      transform:translateX(-50%);
+      z-index:10;
+      text-align:center;
+      display:none;
+    }
+    
+    .dialog-title {
+      color: gold;
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 20px;
+      border-bottom: 1px solid rgba(255,215,0,0.3);
+      padding-bottom: 5px;
+    }
+    
+    .dialog-content {
+      line-height: 1.5;
+    }
+    
+    .dialog-icon {
+      position: absolute;
+      right: 15px;
+      top: 15px;
+      width: 30px;
+      height: 30px;
+      background: gold;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <!-- WHITE LOADING OVERLAY (always visible) -->
+  <!-- WHITE LOADING OVERLAY -->
   <div id="loading-overlay">
     <div id="loading-content">
-      <!-- Animated Mondstadt Icon -->
-      <video id="mondstadt-animation" autoplay loop muted playsinline>
+      <!-- Animated Mondstadt Icon (plays once then freezes) -->
+      <video id="mondstadt-animation" autoplay muted playsinline onended="this.pause()">
         <source src="https://raw.githubusercontent.com/myngl-link/KATprojects/main/507059009_29906174742360989_5255855171109690292_n.mp4" type="video/mp4">
       </video>
       
@@ -114,7 +205,40 @@
     </div>
   </div>
   
-  <!-- ... (keep rest of HTML the same) ... -->
+  <!-- ERROR OVERLAY -->
+  <div id="error-overlay">
+    <div class="error-modal">
+      <div class="error-title">System Notification -</div>
+      <div class="error-body">
+        Data error, please open in a different browser,<br>
+        click the three dots from the top right corner<br>
+        and click "open in chrome" or any other browser<br>
+        you have. Press "Confirm" to copy the URL link<br>
+        then paste it to your browser.
+      </div>
+      <div class="error-code">Error 68-4200</div>
+      <button id="error-confirm">Confirm</button>
+    </div>
+  </div>
+
+  <!-- ORIGINAL VIEWER ELEMENTS -->
+  <div id="error"></div>
+  <div id="dialog">
+    <div class="dialog-title">Katheryne</div>
+    <div class="dialog-content">Ad astra abyssosque...</div>
+    <div class="dialog-icon">!</div>
+  </div>
+
+  <!-- THREE.JS IMPORTS -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+      "tween.js": "https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@18.6.4/dist/tween.esm.js"
+    }
+  }
+  </script>
 
   <script type="module">
     // ======================
@@ -150,7 +274,12 @@
       // Play initial sound immediately
       initialSound.play().catch(e => console.log("Initial sound play failed:", e));
       
-      // Background music will play after loading completes
+      // If loading is complete, start background music
+      if (allAssetsLoaded) {
+        setTimeout(() => {
+          bgMusic.play().catch(e => console.log("Background music play failed:", e));
+        }, 2000);
+      }
     }
 
     // Initialize audio on first interaction
@@ -190,9 +319,11 @@
         loadingOverlay.style.opacity = '0';
         setTimeout(() => {
           loadingOverlay.style.display = 'none';
-          // Play background music after user interaction
+          // Play background music if audio was initialized
           if (audioInitialized) {
-            bgMusic.play().catch(e => console.log("Background music will play after interaction"));
+            setTimeout(() => {
+              bgMusic.play().catch(e => console.log("Background music will play after interaction"));
+            }, 2000);
           }
         }, 1000);
       }, remainingTime);
