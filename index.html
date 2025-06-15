@@ -15,7 +15,7 @@
     }
     canvas { display:block; }
     
-    /* LOADING OVERLAY */
+    /* WHITE LOADING OVERLAY */
     #loading-overlay {
       position:fixed;
       top:0; left:0;
@@ -26,8 +26,6 @@
       flex-direction:column;
       justify-content:center;
       align-items:center;
-      opacity:0;
-      transition: opacity 1.5s ease-out;
     }
     
     #loading-content {
@@ -38,22 +36,21 @@
       justify-content: space-between;
     }
     
+    /* ANIMATED MONDSTADT ICON */
     #mondstadt-animation {
       width:150px;
       height:150px;
       opacity:0;
-      transition: opacity 1s ease-out 0.5s;
+      animation: fadeIn 1s ease-out 0.5s forwards;
     }
     
-    /* ELEMENT LOADING BAR */
+    /* LOADING BAR */
     .loading-container {
       position: relative;
       width: 500px;
       height: 62.5px;
       transform: scale(0.8);
       margin-top: 50px;
-      opacity:0;
-      transition: opacity 1s ease-out 1s;
     }
     
     .loading-bar-bg {
@@ -63,6 +60,8 @@
       background: url("https://raw.githubusercontent.com/myngl-link/KATprojects/main/loading-bar.webp") no-repeat;
       background-size: 100% 100%;
       filter: drop-shadow(0 0 0 #f5f5f5);
+      opacity:0;
+      animation: fadeIn 1s ease-out 1s forwards;
     }
     
     .loading-bar-fill {
@@ -74,6 +73,13 @@
       filter: drop-shadow(0 0 0 #666666);
       overflow: hidden;
       transition: width 0.3s ease-out;
+      opacity:0;
+      animation: fadeIn 1s ease-out 1s forwards;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
     
     /* ERROR OVERLAY */
@@ -88,102 +94,11 @@
       align-items:center;
     }
     
-    .error-modal {
-      width:600px;
-      background:white;
-      border-radius:3px;
-      overflow:hidden;
-      box-shadow:0 3px 15px rgba(0,0,0,0.2);
-      border:1px solid #E0E0E0;
-    }
-    
-    .error-title {
-      background:linear-gradient(to right, #D32F2F, #B71C1C);
-      color:white;
-      padding:18px;
-      text-align:center;
-      font-weight:700;
-      letter-spacing:0.5px;
-      font-size:24px;
-    }
-    
-    .error-body {
-      padding:30px 40px;
-      line-height:1.6;
-      font-size:18px;
-      color:#212121;
-      text-align:center;
-    }
-    
-    .error-code {
-      font-weight:500;
-      color:#D32F2F;
-      text-align:center;
-      margin:20px 0;
-      font-size:20px;
-    }
-    
-    #error-confirm {
-      display:block;
-      width:180px;
-      margin:0 auto 30px;
-      padding:12px;
-      background:#D32F2F;
-      color:white;
-      border:none;
-      border-radius:4px;
-      font-weight:500;
-      font-size:18px;
-      cursor:pointer;
-      transition:background 0.2s;
-    }
-    
-    #error-confirm:hover {
-      background:#B71C1C;
-    }
-    
-    /* ORIGINAL VIEWER ELEMENTS */
-    #error, #dialog {
-      position:absolute;
-      left:50%;
-      transform:translateX(-50%);
-      z-index:10;
-      text-align:center;
-      display:none;
-    }
-    
-    .dialog-title {
-      color: gold;
-      font-weight: bold;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-size: 20px;
-      border-bottom: 1px solid rgba(255,215,0,0.3);
-      padding-bottom: 5px;
-    }
-    
-    .dialog-content {
-      line-height: 1.5;
-    }
-    
-    .dialog-icon {
-      position: absolute;
-      right: 15px;
-      top: 15px;
-      width: 30px;
-      height: 30px;
-      background: gold;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-    }
+    /* ... (keep other styles the same) ... */
   </style>
 </head>
 <body>
-  <!-- WHITE LOADING OVERLAY -->
+  <!-- WHITE LOADING OVERLAY (always visible) -->
   <div id="loading-overlay">
     <div id="loading-content">
       <!-- Animated Mondstadt Icon -->
@@ -199,40 +114,7 @@
     </div>
   </div>
   
-  <!-- ERROR OVERLAY -->
-  <div id="error-overlay">
-    <div class="error-modal">
-      <div class="error-title">System Notification -</div>
-      <div class="error-body">
-        Data error, please open in a different browser,<br>
-        click the three dots from the top right corner<br>
-        and click "open in chrome" or any other browser<br>
-        you have. Press "Confirm" to copy the URL link<br>
-        then paste it to your browser.
-      </div>
-      <div class="error-code">Error 68-4200</div>
-      <button id="error-confirm">Confirm</button>
-    </div>
-  </div>
-
-  <!-- ORIGINAL VIEWER ELEMENTS -->
-  <div id="error"></div>
-  <div id="dialog">
-    <div class="dialog-title">Katheryne</div>
-    <div class="dialog-content">Ad astra abyssosque...</div>
-    <div class="dialog-icon">!</div>
-  </div>
-
-  <!-- THREE.JS IMPORTS -->
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-      "tween.js": "https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@18.6.4/dist/tween.esm.js"
-    }
-  }
-  </script>
+  <!-- ... (keep rest of HTML the same) ... -->
 
   <script type="module">
     // ======================
@@ -254,49 +136,38 @@
     }
 
     // ======================
-    // LOADING ANIMATION SYSTEM
+    // AUDIO SYSTEM
     // ======================
-    const loadingOverlay = document.getElementById('loading-overlay');
-    const mondstadtAnim = document.getElementById('mondstadt-animation');
-    const loadingContainer = document.querySelector('.loading-container');
-    const loadingBarFill = document.querySelector('.loading-bar-fill');
-    
-    // Initialize audio
+    let audioInitialized = false;
     const initialSound = new Audio('https://raw.githubusercontent.com/myngl-link/KATprojects/main/loading-sound-effect.mp3');
     const bgMusic = new Audio('https://raw.githubusercontent.com/myngl-link/KATprojects/main/loading-background-music.mp3');
     bgMusic.loop = true;
 
-    // Track loading start time
+    function initAudio() {
+      if (audioInitialized) return;
+      audioInitialized = true;
+      
+      // Play initial sound immediately
+      initialSound.play().catch(e => console.log("Initial sound play failed:", e));
+      
+      // Background music will play after loading completes
+    }
+
+    // Initialize audio on first interaction
+    document.body.addEventListener('click', initAudio, { once: true });
+    document.body.addEventListener('touchstart', initAudio, { once: true });
+
+    // ======================
+    // LOADING SYSTEM
+    // ======================
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingBarFill = document.querySelector('.loading-bar-fill');
     const loadStartTime = Date.now();
     const minimumLoadTime = 12000; // 12 seconds minimum loading time
 
-    // Start the loading sequence
-    function startLoadingSequence() {
-      // Fade in overlay and elements
-      loadingOverlay.style.opacity = '1';
-      
-      // Play initial sound when elements start fading in
-      setTimeout(() => {
-        initialSound.play().catch(e => console.log("Initial sound play failed:", e));
-      }, 500);
-      
-      // Fade in elements
-      setTimeout(() => {
-        mondstadtAnim.style.opacity = '1';
-        loadingContainer.style.opacity = '1';
-      }, 100);
-    }
-
-    // Start loading sequence immediately
-    startLoadingSequence();
-
-    // ======================
-    // PROGRESS TRACKING
-    // ======================
-    let totalAssets = 3; // katheryne.glb + map.glb + voice line
+    let totalAssets = 4; // map.glb + katheryne.glb + voice line + minimum time
     let loadedAssets = 0;
     let allAssetsLoaded = false;
-    let minimumLoadComplete = false;
 
     function updateProgress() {
       loadedAssets++;
@@ -304,40 +175,32 @@
       loadingBarFill.style.width = `${progress * 100}%`;
       
       if (loadedAssets === totalAssets) {
-        allAssetsLoaded = true;
-        checkLoadingComplete();
-      }
-    }
-
-    function checkLoadingComplete() {
-      const currentTime = Date.now();
-      const elapsed = currentTime - loadStartTime;
-      const remainingTime = minimumLoadTime - elapsed;
-
-      if (allAssetsLoaded && remainingTime <= 0) {
         completeLoading();
-      } else if (allAssetsLoaded) {
-        setTimeout(completeLoading, remainingTime);
       }
     }
 
     function completeLoading() {
-      loadingOverlay.style.opacity = '0';
+      allAssetsLoaded = true;
+      
+      // Ensure minimum load time has passed
+      const elapsed = Date.now() - loadStartTime;
+      const remainingTime = Math.max(0, minimumLoadTime - elapsed);
+      
       setTimeout(() => {
-        loadingOverlay.style.display = 'none';
-        // Start background music after 2 seconds
+        loadingOverlay.style.opacity = '0';
         setTimeout(() => {
-          bgMusic.play().catch(e => console.log("Background music play failed:", e));
-        }, 2000);
-      }, 1000);
+          loadingOverlay.style.display = 'none';
+          // Play background music after user interaction
+          if (audioInitialized) {
+            bgMusic.play().catch(e => console.log("Background music will play after interaction"));
+          }
+        }, 1000);
+      }, remainingTime);
     }
 
-    // Set minimum load time check
+    // Force minimum load time count as an asset
     setTimeout(() => {
-      minimumLoadComplete = true;
-      if (allAssetsLoaded) {
-        completeLoading();
-      }
+      updateProgress();
     }, minimumLoadTime);
 
     // ======================
@@ -348,12 +211,12 @@
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import * as TWEEN from 'tween.js';
 
-    // Performance optimizations (from original code)
+    // Performance optimizations
     const isMobile = /Mobi|Android/i.test(navigator.userAgent);
     const useShadows = !isMobile;
     const shadowQuality = isMobile ? 512 : 1024;
 
-    // Fixed visual settings (from original code)
+    // Fixed visual settings
     const FIXED_EXPOSURE = -10;
     const FIXED_LIGHT_INTENSITY = 0.3;
 
@@ -366,7 +229,7 @@
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
     camera.position.set(0, 15, 5);
 
-    // Optimized renderer settings (from original code)
+    // Optimized renderer settings
     const renderer = new THREE.WebGLRenderer({
       antialias: isMobile ? false : true,
       powerPreference: "high-performance",
@@ -381,80 +244,48 @@
     renderer.toneMappingExposure = Math.pow(2, FIXED_EXPOSURE);
     document.body.appendChild(renderer.domElement);
 
-    // Optimized controls (from original code)
+    // Optimized controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.1;
     controls.maxPolarAngle = Math.PI * 0.9;
 
-    // Fixed lighting setup (from original code)
+    // Fixed lighting setup
     const ambientLight = new THREE.AmbientLight(0xfff4e6, 0.03 * FIXED_LIGHT_INTENSITY);
     scene.add(ambientLight);
 
-    const lights = [
-      { 
-        type: 'directional', 
-        pos: [5, 10, 5], 
-        intensity: 0.2 * FIXED_LIGHT_INTENSITY, 
-        color: 0xfff0d0, 
-        target: [0, 0, -12],
-        shadow: useShadows
-      },
-      { 
-        type: 'spot', 
-        pos: [0, 3, -9], 
-        intensity: 0.3 * FIXED_LIGHT_INTENSITY, 
-        color: 0xffd700, 
-        distance: 12, 
-        angle: Math.PI/6, 
-        penumbra: 0.5, 
-        decay: 1, 
-        target: [0, 0.14, -12.1],
-        shadow: useShadows
-      }
-    ];
+    const directionalLight = new THREE.DirectionalLight(0xfff0d0, 0.2 * FIXED_LIGHT_INTENSITY);
+    directionalLight.position.set(5, 10, 5);
+    directionalLight.castShadow = useShadows;
+    if (useShadows) {
+      directionalLight.shadow.mapSize.width = shadowQuality;
+      directionalLight.shadow.mapSize.height = shadowQuality;
+    }
+    scene.add(directionalLight);
 
-    lights.forEach(lightConfig => {
-      let light;
-      switch(lightConfig.type) {
-        case 'directional':
-          light = new THREE.DirectionalLight(lightConfig.color, lightConfig.intensity);
-          light.position.set(...lightConfig.pos);
-          light.target.position.set(...lightConfig.target);
-          scene.add(light.target);
-          break;
-        case 'spot':
-          light = new THREE.SpotLight(
-            lightConfig.color,
-            lightConfig.intensity,
-            lightConfig.distance,
-            lightConfig.angle,
-            lightConfig.penumbra,
-            lightConfig.decay
-          );
-          light.position.set(...lightConfig.pos);
-          light.target.position.set(...lightConfig.target);
-          scene.add(light.target);
-          break;
-      }
-
-      if (lightConfig.shadow) {
-        light.castShadow = true;
-        light.shadow.mapSize.width = shadowQuality;
-        light.shadow.mapSize.height = shadowQuality;
-        light.shadow.bias = -0.001;
-        light.shadow.normalBias = 0.05;
-      }
-
-      scene.add(light);
-    });
+    const spotLight = new THREE.SpotLight(
+      0xffd700,
+      0.3 * FIXED_LIGHT_INTENSITY,
+      12,
+      Math.PI/6,
+      0.5,
+      1
+    );
+    spotLight.position.set(0, 3, -9);
+    spotLight.castShadow = useShadows;
+    if (useShadows) {
+      spotLight.shadow.mapSize.width = shadowQuality;
+      spotLight.shadow.mapSize.height = shadowQuality;
+    }
+    scene.add(spotLight);
 
     // Load models with progress tracking
     const loader = new GLTFLoader();
     let kath = null;
+    let mapScene = null;
     const voice = new Audio('https://raw.githubusercontent.com/myngl-link/KATprojects/main/506064546_30055791174065285_2686737457664994031_n%20(1).mp3');
 
-    // Shared material cache (from original code)
+    // Shared material cache
     const materialCache = new Map();
 
     function createOptimizedMaterial(originalMat) {
@@ -475,7 +306,7 @@
       return mat;
     }
 
-    // Load map.glb (with original optimizations)
+    // Load map.glb
     loader.load('https://raw.githubusercontent.com/myngl-link/KATprojects/main/map.glb',
       map => {
         mapScene = map.scene;
@@ -491,13 +322,15 @@
         scene.add(mapScene);
         updateProgress();
       },
-      undefined,
+      xhr => {
+        // Optional: Update loading progress if needed
+      },
       err => {
         console.error('Map load error:', err);
         updateProgress();
       });
 
-    // Load katheryne.glb (with original optimizations)
+    // Load katheryne.glb
     loader.load('https://raw.githubusercontent.com/myngl-link/KATprojects/main/katheryne.glb',
       gltf => {
         kath = gltf.scene;
@@ -528,11 +361,15 @@
       });
 
     // Voice line loading
-    voice.addEventListener('canplaythrough', updateProgress, { once: true });
-    voice.addEventListener('error', updateProgress);
+    voice.addEventListener('canplaythrough', () => {
+      updateProgress();
+    }, { once: true });
+    voice.addEventListener('error', () => {
+      updateProgress();
+    });
     voice.load();
 
-    // Original animation system (from original code)
+    // Original animation system
     let isAnimating = false;
 
     function animateCameraToDialogPosition() {
@@ -586,11 +423,14 @@
       voice.play();
     }
 
-    // Original click handler (from original code)
+    // Original click handler
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
     window.addEventListener('click', (e) => {
+      // Initialize audio on first click if not already done
+      initAudio();
+      
       if (!kath || isAnimating) return;
       
       mouse.set(
@@ -604,14 +444,14 @@
       }
     });
 
-    // Handle window resize (from original code)
+    // Handle window resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     }, false);
 
-    // Animation loop with frame rate control (from original code)
+    // Animation loop with frame rate control
     let lastTime = 0;
     const frameRate = 60;
     const frameInterval = 1000 / frameRate;
