@@ -54,7 +54,20 @@
       font-weight: bold;
     }
     #settings {
-      display: none; /* Hide controls completely */
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(0,0,0,0.7);
+      padding: 10px;
+      border-radius: 5px;
+      color: white;
+    }
+    .slider-container {
+      margin: 10px 0;
+    }
+    .slider-container label {
+      display: inline-block;
+      width: 120px;
     }
   </style>
 </head>
@@ -68,14 +81,14 @@
   </div>
   <div id="settings">
     <div class="slider-container">
-      Exposure: 
-      <input type="range" id="exposure" min="-10" max="2" step="0.1" value="0">
-      <span class="slider-value" id="exposureValue">1.00</span>
+      <label for="exposure">Exposure:</label>
+      <input type="range" id="exposure" min="-5" max="5" step="0.1" value="-2.5">
+      <span id="exposureValue">-2.5</span>
     </div>
     <div class="slider-container">
-      Light Intensity: 
-      <input type="range" id="lightIntensity" min="0.5" max="3" step="0.1" value="1.5">
-      <span class="slider-value" id="lightIntensityValue">1.5</span>
+      <label for="lightIntensity">Light Power:</label>
+      <input type="range" id="lightIntensity" min="0" max="2" step="0.1" value="0.5">
+      <span id="lightIntensityValue">0.5</span>
     </div>
   </div>
 
@@ -95,14 +108,23 @@
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   import * as TWEEN from 'tween.js';
 
+  // Initialize with low default exposure
+  const DEFAULT_EXPOSURE = -2.5;
+  const DEFAULT_LIGHT_INTENSITY = 0.5;
+
   const loading = document.getElementById('loading');
   const error = document.getElementById('error');
   const dialog = document.getElementById('dialog');
+  const exposureSlider = document.getElementById('exposure');
+  const exposureValue = document.getElementById('exposureValue');
+  const lightIntensitySlider = document.getElementById('lightIntensity');
+  const lightIntensityValue = document.getElementById('lightIntensityValue');
 
-  // Performance optimization
-  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-  const useShadows = !isMobile;
-  const shadowQuality = isMobile ? 512 : 1024;
+  // Set initial values
+  exposureSlider.value = DEFAULT_EXPOSURE;
+  exposureValue.textContent = DEFAULT_EXPOSURE;
+  lightIntensitySlider.value = DEFAULT_LIGHT_INTENSITY;
+  lightIntensityValue.textContent = DEFAULT_LIGHT_INTENSITY;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x222222);
@@ -115,11 +137,11 @@
     powerPreference: "high-performance"
   });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.shadowMap.enabled = useShadows;
+  renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.physicallyCorrectLights = true;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = -0.8; // Set directly to 1.0 (0.00 in logarithmic)
+  renderer.toneMappingExposure = Math.pow(2, DEFAULT_EXPOSURE); // Proper exposure calculation
   document.body.appendChild(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -127,17 +149,16 @@
   controls.dampingFactor = 0.05;
   controls.maxPolarAngle = Math.PI * 0.9;
 
-  // Ambient light - subtle fill
-  const ambientLight = new THREE.AmbientLight(0xfff4e6, 0.15);
+  // Lighting setup with lower initial intensities
+  const ambientLight = new THREE.AmbientLight(0xfff4e6, 0.1 * DEFAULT_LIGHT_INTENSITY);
   scene.add(ambientLight);
 
-  // Lights configuration
   const lights = [
-    { type: 'directional', pos: [5, 10, 5], intensity: 1.2, color: 0xfff0d0, target: [0, 0, -12] },
-    { type: 'spot', pos: [0, 3, -9], intensity: 2.0, color: 0xffd700, distance: 12, angle: Math.PI/6, 
+    { type: 'directional', pos: [5, 10, 5], intensity: 0.5, color: 0xfff0d0, target: [0, 0, -12] },
+    { type: 'spot', pos: [0, 3, -9], intensity: 0.8, color: 0xffd700, distance: 12, angle: Math.PI/6, 
       penumbra: 0.5, decay: 1, target: [0, 0.14, -12.1] },
-    { type: 'point', pos: [5, 3, -5], intensity: 0.8, color: 0xffe6c3, distance: 10, decay: 1.5 },
-    { type: 'point', pos: [-5, 3, -5], intensity: 0.8, color: 0xffe6c3, distance: 10, decay: 1.5 }
+    { type: 'point', pos: [5, 3, -5], intensity: 0.3, color: 0xffe6c3, distance: 10, decay: 1.5 },
+    { type: 'point', pos: [-5, 3, -5], intensity: 0.3, color: 0xffe6c3, distance: 10, decay: 1.5 }
   ];
 
   const lightInstances = [];
@@ -146,7 +167,7 @@
     let light;
     switch(lightConfig.type) {
       case 'directional':
-        light = new THREE.DirectionalLight(lightConfig.color, lightConfig.intensity);
+        light = new THREE.DirectionalLight(lightConfig.color, lightConfig.intensity * DEFAULT_LIGHT_INTENSITY);
         light.position.set(...lightConfig.pos);
         light.target.position.set(...lightConfig.target);
         scene.add(light.target);
@@ -154,7 +175,7 @@
       case 'spot':
         light = new THREE.SpotLight(
           lightConfig.color,
-          lightConfig.intensity,
+          lightConfig.intensity * DEFAULT_LIGHT_INTENSITY,
           lightConfig.distance,
           lightConfig.angle,
           lightConfig.penumbra,
@@ -167,7 +188,7 @@
       case 'point':
         light = new THREE.PointLight(
           lightConfig.color,
-          lightConfig.intensity,
+          lightConfig.intensity * DEFAULT_LIGHT_INTENSITY,
           lightConfig.distance,
           lightConfig.decay
         );
@@ -175,18 +196,39 @@
         break;
     }
 
-    if (useShadows && lightConfig.type !== 'point') {
-      light.castShadow = true;
-      light.shadow.mapSize.width = shadowQuality;
-      light.shadow.mapSize.height = shadowQuality;
-      light.shadow.bias = -0.001;
-      light.shadow.normalBias = 0.05;
-    }
+    light.castShadow = true;
+    light.shadow.mapSize.width = 1024;
+    light.shadow.mapSize.height = 1024;
+    light.shadow.bias = -0.001;
+    light.shadow.normalBias = 0.05;
 
     scene.add(light);
     lightInstances.push(light);
   });
 
+  // Exposure control
+  exposureSlider.addEventListener('input', (e) => {
+    const exposureValue = parseFloat(e.target.value);
+    renderer.toneMappingExposure = Math.pow(2, exposureValue);
+    document.getElementById('exposureValue').textContent = exposureValue.toFixed(1);
+  });
+
+  // Light intensity control
+  lightIntensitySlider.addEventListener('input', (e) => {
+    const intensity = parseFloat(e.target.value);
+    lightInstances.forEach(light => {
+      light.intensity = light.userData.originalIntensity * intensity;
+    });
+    ambientLight.intensity = 0.1 * intensity;
+    document.getElementById('lightIntensityValue').textContent = intensity.toFixed(1);
+  });
+
+  // Store original intensities
+  lightInstances.forEach(light => {
+    light.userData = { originalIntensity: light.intensity };
+  });
+
+  // Rest of your existing code (loader, animations, etc.)
   const loader = new GLTFLoader();
   const mp3Name = encodeURI("506064546_30055791174065285_2686737457664994031_n (1).mp3");
   const voice = new Audio(`/KATprojects/${mp3Name}`);
@@ -197,14 +239,13 @@
   const mouse = new THREE.Vector2();
   let isAnimating = false;
 
-  // Load models
   loader.load('/KATprojects/map.glb',
     map => {
       mapScene = map.scene;
       mapScene.traverse(child => {
         if (child.isMesh) {
-          child.castShadow = useShadows;
-          child.receiveShadow = useShadows;
+          child.castShadow = true;
+          child.receiveShadow = true;
           if (child.material) {
             child.material.toneMapped = true;
             child.material.needsUpdate = true;
@@ -227,8 +268,8 @@
       
       kath.traverse(child => {
         if (child.isMesh) {
-          child.castShadow = useShadows;
-          child.receiveShadow = useShadows;
+          child.castShadow = true;
+          child.receiveShadow = true;
           if (child.material) {
             child.material.toneMapped = true;
             child.material.roughness = 0.6;
@@ -253,9 +294,6 @@
       error.textContent = 'Failed to load Katheryne: ' + err.message;
       loading.style.display = 'none';
     });
-
-  // Initialize with default exposure (0.00 = 1.0)
-  renderer.toneMappingExposure = -1.0;
 
   function animateCameraToDialogPosition() {
     if (!kath || isAnimating) return;
