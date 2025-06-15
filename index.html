@@ -81,11 +81,6 @@
   </div>
   <div id="settings">
     <div class="slider-container">
-      <label for="exposure">Exposure:</label>
-      <input type="range" id="exposure" min="-10" max="5" step="0.1" value="-10">
-      <span id="exposureValue">-10</span>
-    </div>
-    <div class="slider-container">
       <label for="lightIntensity">Light Power:</label>
       <input type="range" id="lightIntensity" min="0" max="2" step="0.1" value="0.3">
       <span id="lightIntensityValue">0.3</span>
@@ -108,26 +103,22 @@
   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
   import * as TWEEN from 'tween.js';
 
-  // Initialize with extreme dark settings
-  const DEFAULT_EXPOSURE = -10;
+  // Permanent exposure setting
+  const FIXED_EXPOSURE = -10; // Locked at -10 exposure
   const DEFAULT_LIGHT_INTENSITY = 0.3;
 
   const loading = document.getElementById('loading');
   const error = document.getElementById('error');
   const dialog = document.getElementById('dialog');
-  const exposureSlider = document.getElementById('exposure');
-  const exposureValue = document.getElementById('exposureValue');
   const lightIntensitySlider = document.getElementById('lightIntensity');
   const lightIntensityValue = document.getElementById('lightIntensityValue');
 
   // Set initial values
-  exposureSlider.value = DEFAULT_EXPOSURE;
-  exposureValue.textContent = DEFAULT_EXPOSURE;
   lightIntensitySlider.value = DEFAULT_LIGHT_INTENSITY;
   lightIntensityValue.textContent = DEFAULT_LIGHT_INTENSITY;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x111111); // Darker background
+  scene.background = new THREE.Color(0x111111);
 
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
   camera.position.set(0, 15, 5);
@@ -141,7 +132,7 @@
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.physicallyCorrectLights = true;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = Math.pow(2, DEFAULT_EXPOSURE);
+  renderer.toneMappingExposure = Math.pow(2, FIXED_EXPOSURE); // Permanent exposure
   document.body.appendChild(renderer.domElement);
 
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -149,7 +140,7 @@
   controls.dampingFactor = 0.05;
   controls.maxPolarAngle = Math.PI * 0.9;
 
-  // Ultra-conservative lighting
+  // Conservative lighting
   const ambientLight = new THREE.AmbientLight(0xfff4e6, 0.03 * DEFAULT_LIGHT_INTENSITY);
   scene.add(ambientLight);
 
@@ -207,14 +198,7 @@
     light.userData = { originalIntensity: light.intensity };
   });
 
-  // Exposure control
-  exposureSlider.addEventListener('input', (e) => {
-    const exposureValue = parseFloat(e.target.value);
-    renderer.toneMappingExposure = Math.pow(2, exposureValue);
-    document.getElementById('exposureValue').textContent = exposureValue.toFixed(1);
-  });
-
-  // Light intensity control
+  // Light intensity control only
   lightIntensitySlider.addEventListener('input', (e) => {
     const intensity = parseFloat(e.target.value);
     lightInstances.forEach(light => {
@@ -267,8 +251,8 @@
           child.receiveShadow = true;
           if (child.material) {
             child.material.toneMapped = true;
-            child.material.roughness = 0.8; // More matte
-            child.material.metalness = 0.0; // No metalness
+            child.material.roughness = 0.8;
+            child.material.metalness = 0.0;
             child.material.needsUpdate = true;
           }
         }
